@@ -1,0 +1,8 @@
+version: "3.8"
+
+services:
+  telegrambot:
+    build:
+      context: ./
+    expose:
+      - 1234
