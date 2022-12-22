@@ -17,6 +17,8 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 # Distributions: Norm, Exp, Pois -> 
 # Calculation: from A to B P(A <= x <= B) for each distribution
 
+#answer is always no
+
 
 kbActions = [
         [
@@ -40,8 +42,10 @@ kbDistributions = [
 class Form(StatesGroup):
     action = State() 
     calc = State()
-    seg = State()
     pdf = State()
+    seg_norm = State()
+    seg_pois = State()
+    seg_exp = State()
 
 
 
@@ -99,24 +103,71 @@ async def select_distribution(message: types.Message):
         await message.reply("Lambda: p(x) = Lambda * e^(-x * Lambda)")
         return
     else:
-        await message.reply("Wrong distribution delected, please retry")
+        await message.reply("Wrong distribution selected, please retry")
         return
 
 
 @dp.message_handler(state=Form.calc)
 async def select_distribution(message: types.Message):
-    if message.text not in ["Pois", "Normal", "Exp"]:
-        await message.reply("Wrong distribution delected, please retry")
+    if message.text == "Pois":
+        await Form.seg_pois.set()
+        await message.reply("Type 2 integers for Pois distribution")
+        return
+    elif message.text == "Normal":
+        await Form.seg_norm.set()
+        await message.reply("Type 2 integers for Normal distribution")
+        return
+    elif message.text == "Exp":
+        await Form.seg_exp.set()
+        await message.reply("Type 2 integers for Exp distribution")
+        return
     else:
-        await Form.seg.set()
-        await message.reply("Type a segment to get a probability")
+        await message.reply("Wrong distribution selected, please retry")
+        return
 
-@dp.message_handler(state=Form.seg)
+def check_int(s):
+    if s[0] in ('-', '+'):
+        return s[1:].isdigit()
+    return s.isdigit()
+
+
+
+@dp.message_handler(state=Form.seg_norm)
 async def select_distribution(message: types.Message):
     lst = message.text.split()
     if len(lst) != 2:
-        await message.reply("Segment must contain only 2 numbers")
+        await message.reply("Segment must contain only 2 integers")
         return
+    if not (check_int(lst[0]) and check_int(lst[1])):
+        await message.reply("Segment must contain only 2 INTEGERS")
+        return
+    await message.reply("No")
+
+
+@dp.message_handler(state=Form.seg_pois)
+async def select_distribution(message: types.Message):
+    lst = message.text.split()
+    if len(lst) != 2:
+        await message.reply("Segment must contain only 2 integers")
+        return
+    if not (check_int(lst[0]) and check_int(lst[1])):
+        await message.reply("Segment must contain only 2 INTEGERS")
+        return
+    await message.reply("No")
+
+
+@dp.message_handler(state=Form.seg_exp)
+async def select_distribution(message: types.Message):
+    lst = message.text.split()
+    if len(lst) != 2:
+        await message.reply("Segment must contain only 2 integers")
+        return
+    if not (check_int(lst[0]) and check_int(lst[1])):
+        await message.reply("Segment must contain only 2 INTEGERS")
+        return
+    await message.reply("No")
+    
+    
     
 
 
