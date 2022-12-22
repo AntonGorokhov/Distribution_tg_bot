@@ -6,3 +6,5 @@ services:
       context: ./
     expose:
       - 1234
+  telegrambot2:
+    image: "python:3"
