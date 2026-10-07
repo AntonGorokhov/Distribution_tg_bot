@@ -4,294 +4,61 @@
   "batch": 32,
   "beta": 60.0,
   "base": 0.78,
-  "unique_evaluations": 10082,
-  "eval_seconds": 1083.9,
-  "total_seconds": 1356.5,
-  "log_z": 27.483,
-  "train_best_acc": 0.846205472946167,
-  "train_unique_hypotheses": 9543,
-  "train_hyps_above_083": 1021,
+  "unique_evaluations": 10070,
+  "eval_seconds": 1092.4,
+  "total_seconds": 1372.2,
+  "train_evaluations": 9558,
+  "train_seconds": 1315.9,
+  "log_z": 27.327,
+  "train_best_acc": 0.8428723871696693,
+  "train_unique_hypotheses": 9561,
+  "train_hyps_above_083": 1040,
   "samples": 512,
   "sample_unique": 512,
-  "sample_mean_acc": 0.8212,
-  "sample_hyps_above_083": 77,
+  "sample_mean_acc": 0.8095,
+  "sample_hyps_above_083": 43,
   "best_sampled": {
-    "acc": 0.840631473228297,
+    "acc": 0.8428347247504865,
     "cells": [
-      "Pclass:raw",
-      "Pclass:count",
+      "Pclass:onehot",
       "Sex:raw",
       "Age:raw",
       "Age:log",
       "Age:qbin",
-      "Age:missing",
-      "Age:count",
       "SibSp:raw",
-      "SibSp:count",
       "SibSp:family",
-      "Parch:count",
+      "Parch:qbin",
       "Parch:family",
       "Fare:raw",
       "Fare:log",
-      "Fare:count",
       "Embarked:missing",
-      "Cabin:missing",
-      "Cabin:extract",
-      "Ticket:count",
       "Ticket:extract",
       "Name:extract"
     ],
     "hp": {
-      "depth": 3,
+      "model": "hgb",
+      "depth": 4,
       "lr": 0.2,
-      "iters": 100
+      "iters": 50
     },
     "freq": 1
   },
   "top10_sampled": [
     {
-      "acc": 0.840631473228297,
+      "acc": 0.8428347247504865,
       "freq": 1,
       "cells": [
-        "Pclass:raw",
-        "Pclass:count",
-        "Sex:raw",
-        "Age:raw",
-        "Age:log",
-        "Age:qbin",
-        "Age:missing",
-        "Age:count",
-        "SibSp:raw",
-        "SibSp:count",
-        "SibSp:family",
-        "Parch:count",
-        "Parch:family",
-        "Fare:raw",
-        "Fare:log",
-        "Fare:count",
-        "Embarked:missing",
-        "Cabin:missing",
-        "Cabin:extract",
-        "Ticket:count",
-        "Ticket:extract",
-        "Name:extract"
-      ],
-      "hp": {
-        "depth": 3,
-        "lr": 0.2,
-        "iters": 100
-      }
-    },
-    {
-      "acc": 0.8405875337392505,
-      "freq": 1,
-      "cells": [
-        "Pclass:raw",
-        "Pclass:qbin",
-        "Pclass:count",
         "Pclass:onehot",
         "Sex:raw",
         "Age:raw",
         "Age:log",
         "Age:qbin",
-        "Age:missing",
         "SibSp:raw",
-        "SibSp:family",
-        "Parch:raw",
-        "Parch:count",
-        "Fare:raw",
-        "Fare:log",
-        "Fare:qbin",
-        "Fare:missing",
-        "Embarked:missing",
-        "Ticket:count",
-        "Ticket:extract",
-        "Name:extract"
-      ],
-      "hp": {
-        "depth": 3,
-        "lr": 0.2,
-        "iters": 200
-      }
-    },
-    {
-      "acc": 0.8394953235829515,
-      "freq": 1,
-      "cells": [
-        "Pclass:raw",
-        "Pclass:onehot",
-        "Sex:raw",
-        "Age:raw",
-        "Age:log",
-        "Age:qbin",
-        "Age:missing",
-        "Age:count",
-        "SibSp:raw",
-        "SibSp:qbin",
-        "SibSp:count",
-        "SibSp:family",
-        "Parch:raw",
-        "Parch:count",
-        "Parch:family",
-        "Fare:log",
-        "Embarked:missing",
-        "Cabin:missing",
-        "Cabin:extract",
-        "Ticket:extract",
-        "Name:extract"
-      ],
-      "hp": {
-        "model": "hgb",
-        "depth": 2,
-        "lr": 0.2,
-        "iters": 100
-      }
-    },
-    {
-      "acc": 0.8394953235829515,
-      "freq": 1,
-      "cells": [
-        "Pclass:raw",
-        "Pclass:qbin",
-        "Pclass:count",
-        "Pclass:onehot",
-        "Sex:raw",
-        "Age:raw",
-        "Age:missing",
-        "Age:count",
-        "SibSp:raw",
-        "SibSp:qbin",
-        "SibSp:count",
         "SibSp:family",
         "Parch:qbin",
         "Parch:family",
         "Fare:raw",
         "Fare:log",
-        "Fare:qbin",
-        "Fare:missing",
-        "Fare:count",
-        "Embarked:onehot",
-        "Name:extract"
-      ],
-      "hp": {
-        "model": "hgb",
-        "depth": 4,
-        "lr": 0.05,
-        "iters": 200
-      }
-    },
-    {
-      "acc": 0.8383591739376058,
-      "freq": 1,
-      "cells": [
-        "Pclass:raw",
-        "Pclass:count",
-        "Sex:raw",
-        "Age:qbin",
-        "Age:missing",
-        "SibSp:qbin",
-        "Parch:raw",
-        "Parch:qbin",
-        "Parch:family",
-        "Fare:raw",
-        "Fare:log",
-        "Fare:qbin",
-        "Fare:count",
-        "Embarked:missing",
-        "Cabin:missing",
-        "Cabin:extract",
-        "Ticket:extract",
-        "Name:extract"
-      ],
-      "hp": {
-        "model": "hgb",
-        "depth": 2,
-        "lr": 0.1,
-        "iters": 50
-      }
-    },
-    {
-      "acc": 0.8383466197978784,
-      "freq": 1,
-      "cells": [
-        "Pclass:raw",
-        "Pclass:count",
-        "Pclass:onehot",
-        "Sex:raw",
-        "Age:raw",
-        "Age:log",
-        "Age:qbin",
-        "Age:missing",
-        "SibSp:qbin",
-        "SibSp:count",
-        "Parch:raw",
-        "Parch:qbin",
-        "Parch:family",
-        "Fare:raw",
-        "Fare:log",
-        "Fare:qbin",
-        "Fare:missing",
-        "Fare:count",
-        "Ticket:extract",
-        "Name:extract"
-      ],
-      "hp": {
-        "depth": 3,
-        "lr": 0.2,
-        "iters": 200
-      }
-    },
-    {
-      "acc": 0.8372544096415794,
-      "freq": 1,
-      "cells": [
-        "Pclass:qbin",
-        "Pclass:count",
-        "Pclass:onehot",
-        "Sex:raw",
-        "Age:raw",
-        "Age:log",
-        "Age:qbin",
-        "Age:count",
-        "SibSp:raw",
-        "SibSp:qbin",
-        "SibSp:family",
-        "Parch:raw",
-        "Fare:raw",
-        "Fare:missing",
-        "Embarked:missing",
-        "Embarked:onehot",
-        "Cabin:missing",
-        "Cabin:extract",
-        "Ticket:count",
-        "Ticket:extract",
-        "Name:extract"
-      ],
-      "hp": {
-        "model": "hgb",
-        "depth": 4,
-        "iters": 200
-      }
-    },
-    {
-      "acc": 0.8372293013621241,
-      "freq": 1,
-      "cells": [
-        "Pclass:count",
-        "Pclass:onehot",
-        "Sex:raw",
-        "Age:raw",
-        "Age:log",
-        "Age:qbin",
-        "SibSp:raw",
-        "SibSp:count",
-        "SibSp:family",
-        "Parch:qbin",
-        "Parch:count",
-        "Parch:family",
-        "Fare:raw",
-        "Fare:log",
-        "Fare:qbin",
         "Embarked:missing",
         "Ticket:extract",
         "Name:extract"
@@ -304,66 +71,228 @@
       }
     },
     {
-      "acc": 0.8361308141359614,
+      "acc": 0.8394953235829515,
       "freq": 1,
       "cells": [
-        "Pclass:qbin",
-        "Pclass:count",
+        "Pclass:raw",
+        "Sex:raw",
+        "Age:log",
+        "Age:missing",
+        "SibSp:count",
+        "SibSp:family",
+        "Parch:raw",
+        "Parch:family",
+        "Fare:raw",
+        "Fare:log",
+        "Embarked:missing",
+        "Name:extract"
+      ],
+      "hp": {
+        "depth": 4
+      }
+    },
+    {
+      "acc": 0.8394827694432239,
+      "freq": 1,
+      "cells": [
+        "Pclass:raw",
         "Pclass:onehot",
         "Sex:raw",
         "Age:log",
+        "Age:missing",
         "Age:count",
-        "SibSp:qbin",
-        "SibSp:family",
-        "Parch:qbin",
+        "Parch:raw",
+        "Parch:count",
+        "Parch:family",
         "Fare:raw",
-        "Fare:log",
-        "Fare:qbin",
-        "Fare:missing",
         "Embarked:missing",
         "Embarked:onehot",
-        "Cabin:missing",
-        "Cabin:extract",
         "Ticket:extract",
         "Name:extract"
       ],
       "hp": {
         "model": "hgb",
-        "lr": 0.1,
-        "iters": 200
+        "depth": 2,
+        "lr": 0.2,
+        "iters": 100
       }
     },
     {
-      "acc": 0.8361245370660976,
+      "acc": 0.8394764923733602,
       "freq": 1,
       "cells": [
         "Pclass:raw",
-        "Pclass:qbin",
         "Pclass:count",
         "Pclass:onehot",
         "Sex:raw",
         "Age:raw",
-        "Age:log",
+        "Age:qbin",
+        "Age:missing",
         "Age:count",
+        "SibSp:qbin",
         "SibSp:count",
+        "SibSp:family",
         "Parch:raw",
+        "Parch:count",
+        "Fare:log",
+        "Embarked:missing",
+        "Embarked:onehot",
+        "Ticket:extract",
+        "Name:extract"
+      ],
+      "hp": {
+        "iters": 200
+      }
+    },
+    {
+      "acc": 0.8383403427280145,
+      "freq": 1,
+      "cells": [
+        "Pclass:count",
+        "Sex:raw",
+        "Age:log",
+        "Age:qbin",
+        "Age:missing",
+        "Age:count",
+        "SibSp:raw",
+        "SibSp:qbin",
+        "SibSp:count",
         "Parch:qbin",
         "Parch:count",
         "Parch:family",
         "Fare:log",
         "Fare:qbin",
-        "Fare:missing",
         "Fare:count",
-        "Embarked:onehot",
-        "Cabin:missing",
+        "Embarked:missing",
         "Cabin:extract",
         "Ticket:count",
-        "Ticket:extract",
         "Name:extract"
       ],
       "hp": {
-        "depth": 4,
+        "depth": 3
+      }
+    },
+    {
+      "acc": 0.8372167472223968,
+      "freq": 1,
+      "cells": [
+        "Pclass:count",
+        "Sex:raw",
+        "Age:raw",
+        "Age:log",
+        "Age:missing",
+        "SibSp:raw",
+        "SibSp:qbin",
+        "Parch:family",
+        "Fare:raw",
+        "Fare:log",
+        "Fare:qbin",
+        "Fare:count",
+        "Embarked:missing",
+        "Cabin:extract",
+        "Name:extract"
+      ],
+      "hp": {
+        "model": "hgb",
         "lr": 0.1
+      }
+    },
+    {
+      "acc": 0.8361057058565062,
+      "freq": 1,
+      "cells": [
+        "Pclass:count",
+        "Pclass:onehot",
+        "Sex:raw",
+        "Age:log",
+        "Age:count",
+        "SibSp:count",
+        "Parch:raw",
+        "Fare:log",
+        "Fare:missing",
+        "Embarked:onehot",
+        "Ticket:extract",
+        "Name:extract"
+      ],
+      "hp": {
+        "model": "hgb",
+        "lr": 0.2,
+        "iters": 50
+      }
+    },
+    {
+      "acc": 0.8361057058565061,
+      "freq": 1,
+      "cells": [
+        "Pclass:qbin",
+        "Pclass:count",
+        "Pclass:onehot",
+        "Sex:raw",
+        "Age:raw",
+        "Age:qbin",
+        "SibSp:qbin",
+        "SibSp:count",
+        "SibSp:family",
+        "Fare:raw",
+        "Fare:count",
+        "Embarked:missing",
+        "Cabin:missing",
+        "Ticket:extract",
+        "Name:extract"
+      ],
+      "hp": {
+        "model": "hgb",
+        "depth": 4,
+        "iters": 100
+      }
+    },
+    {
+      "acc": 0.8350009415604795,
+      "freq": 1,
+      "cells": [
+        "Pclass:count",
+        "Sex:raw",
+        "Age:log",
+        "Age:qbin",
+        "Age:missing",
+        "Parch:qbin",
+        "Parch:family",
+        "Fare:raw",
+        "Fare:qbin",
+        "Embarked:onehot",
+        "Ticket:count",
+        "Ticket:extract",
+        "Name:extract"
+      ],
+      "hp": {
+        "depth": 2,
+        "lr": 0.2,
+        "iters": 200
+      }
+    },
+    {
+      "acc": 0.8349883874207521,
+      "freq": 1,
+      "cells": [
+        "Pclass:raw",
+        "Sex:raw",
+        "Age:raw",
+        "Age:qbin",
+        "Age:missing",
+        "SibSp:qbin",
+        "Parch:count",
+        "Parch:family",
+        "Fare:raw",
+        "Fare:log",
+        "Fare:missing",
+        "Embarked:onehot",
+        "Cabin:missing",
+        "Cabin:extract",
+        "Name:extract"
+      ],
+      "hp": {
+        "depth": 3,
+        "lr": 0.2
       }
     }
   ]

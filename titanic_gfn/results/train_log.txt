@@ -1,38 +1,38 @@
-it    1 | loss  159.748 | logZ  24.900 | acc mean 0.7539 max 0.8339 | painted 16.16 | evals    30 (    3s) |      4s
-it   10 | loss   63.371 | logZ  24.170 | acc mean 0.8052 max 0.8372 | painted 23.72 | evals   313 (   29s) |     41s
-it   20 | loss   30.121 | logZ  24.047 | acc mean 0.7957 max 0.8316 | painted 17.94 | evals   632 (   62s) |     84s
-it   30 | loss   10.554 | logZ  24.497 | acc mean 0.8099 max 0.8316 | painted 19.66 | evals   951 (   95s) |    125s
-it   40 | loss   28.017 | logZ  25.172 | acc mean 0.8030 max 0.8350 | painted 20.22 | evals  1270 (  128s) |    167s
-it   50 | loss    7.636 | logZ  25.684 | acc mean 0.7898 max 0.8260 | painted 15.94 | evals  1587 (  162s) |    210s
-it   60 | loss   12.940 | logZ  26.067 | acc mean 0.8012 max 0.8316 | painted 16.66 | evals  1907 (  194s) |    251s
-it   70 | loss    2.895 | logZ  26.440 | acc mean 0.8125 max 0.8383 | painted 17.84 | evals  2227 (  227s) |    292s
-it   80 | loss    2.131 | logZ  26.714 | acc mean 0.8126 max 0.8294 | painted 17.69 | evals  2546 (  263s) |    337s
-it   90 | loss   12.607 | logZ  26.805 | acc mean 0.8130 max 0.8305 | painted 22.06 | evals  2866 (  297s) |    381s
-it  100 | loss    2.658 | logZ  26.720 | acc mean 0.8163 max 0.8327 | painted 17.38 | evals  3185 (  330s) |    423s
-it  110 | loss   10.452 | logZ  26.748 | acc mean 0.8110 max 0.8406 | painted 17.47 | evals  3505 (  367s) |    469s
-it  120 | loss    9.074 | logZ  26.953 | acc mean 0.8070 max 0.8339 | painted 20.56 | evals  3824 (  404s) |    515s
-it  130 | loss    4.410 | logZ  26.954 | acc mean 0.8159 max 0.8361 | painted 20.59 | evals  4143 (  438s) |    558s
-it  140 | loss    3.724 | logZ  26.842 | acc mean 0.8162 max 0.8339 | painted 17.47 | evals  4463 (  475s) |    604s
-it  150 | loss    2.310 | logZ  26.942 | acc mean 0.8127 max 0.8271 | painted 16.41 | evals  4783 (  509s) |    648s
-it  160 | loss    2.567 | logZ  27.126 | acc mean 0.8049 max 0.8350 | painted 19.22 | evals  5101 (  544s) |    691s
-it  170 | loss    1.255 | logZ  27.289 | acc mean 0.8159 max 0.8350 | painted 18.72 | evals  5421 (  579s) |    735s
-it  180 | loss    1.652 | logZ  27.326 | acc mean 0.8134 max 0.8373 | painted 19.44 | evals  5739 (  614s) |    778s
-it  190 | loss    2.386 | logZ  27.240 | acc mean 0.8108 max 0.8384 | painted 17.19 | evals  6059 (  651s) |    823s
-it  200 | loss    5.027 | logZ  27.313 | acc mean 0.8001 max 0.8316 | painted 18.94 | evals  6377 (  687s) |    868s
-it  210 | loss    4.692 | logZ  27.392 | acc mean 0.8106 max 0.8361 | painted 17.81 | evals  6697 (  721s) |    911s
-it  220 | loss    1.135 | logZ  27.420 | acc mean 0.8226 max 0.8339 | painted 20.03 | evals  7017 (  756s) |    955s
-it  230 | loss    4.043 | logZ  27.482 | acc mean 0.8133 max 0.8350 | painted 18.41 | evals  7337 (  790s) |    997s
-it  240 | loss    9.821 | logZ  27.409 | acc mean 0.8229 max 0.8361 | painted 21.28 | evals  7656 (  822s) |   1038s
-it  250 | loss    1.699 | logZ  27.362 | acc mean 0.8123 max 0.8272 | painted 18.25 | evals  7975 (  857s) |   1082s
-it  260 | loss    1.467 | logZ  27.428 | acc mean 0.8149 max 0.8361 | painted 16.78 | evals  8293 (  891s) |   1124s
-it  270 | loss    1.178 | logZ  27.531 | acc mean 0.8173 max 0.8316 | painted 18.38 | evals  8613 (  927s) |   1170s
-it  280 | loss    1.871 | logZ  27.666 | acc mean 0.8179 max 0.8316 | painted 19.41 | evals  8932 (  962s) |   1213s
-it  290 | loss    2.711 | logZ  27.647 | acc mean 0.8220 max 0.8372 | painted 21.03 | evals  9250 (  996s) |   1255s
-it  300 | loss    4.708 | logZ  27.483 | acc mean 0.8158 max 0.8361 | painted 21.16 | evals  9570 ( 1028s) |   1296s
+it    1 | loss  159.722 | logZ  24.900 | acc mean 0.7540 max 0.8327 | painted 16.16 | evals    30 (    3s) |      4s
+it   10 | loss   36.306 | logZ  24.176 | acc mean 0.7994 max 0.8361 | painted 22.09 | evals   315 (   28s) |     40s
+it   20 | loss   27.412 | logZ  24.150 | acc mean 0.8002 max 0.8271 | painted 18.50 | evals   632 (   58s) |     80s
+it   30 | loss   19.045 | logZ  24.614 | acc mean 0.8149 max 0.8361 | painted 18.62 | evals   950 (   99s) |    129s
+it   40 | loss    8.186 | logZ  25.276 | acc mean 0.8079 max 0.8316 | painted 18.22 | evals  1269 (  128s) |    168s
+it   50 | loss   11.307 | logZ  25.878 | acc mean 0.8124 max 0.8350 | painted 21.50 | evals  1589 (  163s) |    212s
+it   60 | loss    3.737 | logZ  26.215 | acc mean 0.8061 max 0.8384 | painted 21.97 | evals  1909 (  200s) |    259s
+it   70 | loss   10.727 | logZ  26.493 | acc mean 0.8014 max 0.8327 | painted 19.88 | evals  2228 (  236s) |    303s
+it   80 | loss    5.596 | logZ  26.472 | acc mean 0.8179 max 0.8384 | painted 19.66 | evals  2547 (  269s) |    345s
+it   90 | loss   10.221 | logZ  26.343 | acc mean 0.8044 max 0.8350 | painted 15.50 | evals  2867 (  303s) |    389s
+it  100 | loss    1.764 | logZ  26.568 | acc mean 0.8138 max 0.8383 | painted 18.31 | evals  3186 (  336s) |    431s
+it  110 | loss    5.541 | logZ  26.776 | acc mean 0.8125 max 0.8339 | painted 18.56 | evals  3506 (  371s) |    475s
+it  120 | loss    4.763 | logZ  26.999 | acc mean 0.7997 max 0.8294 | painted 18.94 | evals  3825 (  407s) |    520s
+it  130 | loss    3.996 | logZ  27.186 | acc mean 0.8061 max 0.8417 | painted 18.09 | evals  4143 (  442s) |    564s
+it  140 | loss    2.393 | logZ  27.278 | acc mean 0.8063 max 0.8338 | painted 18.50 | evals  4461 (  478s) |    609s
+it  150 | loss    3.304 | logZ  27.283 | acc mean 0.8084 max 0.8395 | painted 17.78 | evals  4779 (  513s) |    654s
+it  160 | loss    1.731 | logZ  27.272 | acc mean 0.8167 max 0.8339 | painted 18.41 | evals  5097 (  548s) |    698s
+it  170 | loss    1.737 | logZ  27.271 | acc mean 0.8165 max 0.8339 | painted 19.56 | evals  5416 (  585s) |    744s
+it  180 | loss    5.210 | logZ  27.319 | acc mean 0.8021 max 0.8372 | painted 17.50 | evals  5736 (  619s) |    787s
+it  190 | loss    2.095 | logZ  27.271 | acc mean 0.8121 max 0.8361 | painted 18.00 | evals  6055 (  654s) |    831s
+it  200 | loss    2.384 | logZ  27.178 | acc mean 0.8210 max 0.8361 | painted 19.75 | evals  6374 (  688s) |    874s
+it  210 | loss    4.826 | logZ  27.037 | acc mean 0.8148 max 0.8350 | painted 18.34 | evals  6692 (  722s) |    916s
+it  220 | loss    2.352 | logZ  27.232 | acc mean 0.8098 max 0.8316 | painted 18.53 | evals  7012 (  757s) |    960s
+it  230 | loss    3.099 | logZ  27.467 | acc mean 0.8126 max 0.8429 | painted 18.00 | evals  7332 (  795s) |   1008s
+it  240 | loss    5.908 | logZ  27.577 | acc mean 0.8029 max 0.8328 | painted 17.91 | evals  7650 (  831s) |   1052s
+it  250 | loss    1.694 | logZ  27.589 | acc mean 0.8181 max 0.8361 | painted 18.47 | evals  7969 (  866s) |   1097s
+it  260 | loss    1.583 | logZ  27.629 | acc mean 0.8162 max 0.8361 | painted 16.69 | evals  8286 (  901s) |   1140s
+it  270 | loss    3.745 | logZ  27.675 | acc mean 0.8175 max 0.8316 | painted 21.09 | evals  8605 (  936s) |   1185s
+it  280 | loss    6.211 | logZ  27.524 | acc mean 0.8078 max 0.8384 | painted 17.75 | evals  8923 (  970s) |   1226s
+it  290 | loss    1.955 | logZ  27.392 | acc mean 0.8061 max 0.8361 | painted 18.34 | evals  9241 ( 1004s) |   1270s
+it  300 | loss    3.743 | logZ  27.327 | acc mean 0.8058 max 0.8372 | painted 18.44 | evals  9558 ( 1041s) |   1316s
 
-unique evals 10082 (1084s eval, 1356s total) | train best acc 0.8462 | sampled 512: unique 512, mean acc 0.8212, best 0.8406 (freq 1)
-  0.8406 x  1 {'depth': 3, 'lr': 0.2, 'iters': 100} ['Pclass:raw', 'Pclass:count', 'Sex:raw', 'Age:raw', 'Age:log', 'Age:qbin', 'Age:missing', 'Age:count', 'SibSp:raw', 'SibSp:count', 'SibSp:family', 'Parch:count', 'Parch:family', 'Fare:raw', 'Fare:log', 'Fare:count', 'Embarked:missing', 'Cabin:missing', 'Cabin:extract', 'Ticket:count', 'Ticket:extract', 'Name:extract']
-  0.8406 x  1 {'depth': 3, 'lr': 0.2, 'iters': 200} ['Pclass:raw', 'Pclass:qbin', 'Pclass:count', 'Pclass:onehot', 'Sex:raw', 'Age:raw', 'Age:log', 'Age:qbin', 'Age:missing', 'SibSp:raw', 'SibSp:family', 'Parch:raw', 'Parch:count', 'Fare:raw', 'Fare:log', 'Fare:qbin', 'Fare:missing', 'Embarked:missing', 'Ticket:count', 'Ticket:extract', 'Name:extract']
-  0.8395 x  1 {'model': 'hgb', 'depth': 2, 'lr': 0.2, 'iters': 100} ['Pclass:raw', 'Pclass:onehot', 'Sex:raw', 'Age:raw', 'Age:log', 'Age:qbin', 'Age:missing', 'Age:count', 'SibSp:raw', 'SibSp:qbin', 'SibSp:count', 'SibSp:family', 'Parch:raw', 'Parch:count', 'Parch:family', 'Fare:log', 'Embarked:missing', 'Cabin:missing', 'Cabin:extract', 'Ticket:extract', 'Name:extract']
-  0.8395 x  1 {'model': 'hgb', 'depth': 4, 'lr': 0.05, 'iters': 200} ['Pclass:raw', 'Pclass:qbin', 'Pclass:count', 'Pclass:onehot', 'Sex:raw', 'Age:raw', 'Age:missing', 'Age:count', 'SibSp:raw', 'SibSp:qbin', 'SibSp:count', 'SibSp:family', 'Parch:qbin', 'Parch:family', 'Fare:raw', 'Fare:log', 'Fare:qbin', 'Fare:missing', 'Fare:count', 'Embarked:onehot', 'Name:extract']
-  0.8384 x  1 {'model': 'hgb', 'depth': 2, 'lr': 0.1, 'iters': 50} ['Pclass:raw', 'Pclass:count', 'Sex:raw', 'Age:qbin', 'Age:missing', 'SibSp:qbin', 'Parch:raw', 'Parch:qbin', 'Parch:family', 'Fare:raw', 'Fare:log', 'Fare:qbin', 'Fare:count', 'Embarked:missing', 'Cabin:missing', 'Cabin:extract', 'Ticket:extract', 'Name:extract']
+unique evals 10070 (1092s eval, 1372s total) | train best acc 0.8429 | sampled 512: unique 512, mean acc 0.8095, best 0.8428 (freq 1)
+  0.8428 x  1 {'model': 'hgb', 'depth': 4, 'lr': 0.2, 'iters': 50} ['Pclass:onehot', 'Sex:raw', 'Age:raw', 'Age:log', 'Age:qbin', 'SibSp:raw', 'SibSp:family', 'Parch:qbin', 'Parch:family', 'Fare:raw', 'Fare:log', 'Embarked:missing', 'Ticket:extract', 'Name:extract']
+  0.8395 x  1 {'depth': 4} ['Pclass:raw', 'Sex:raw', 'Age:log', 'Age:missing', 'SibSp:count', 'SibSp:family', 'Parch:raw', 'Parch:family', 'Fare:raw', 'Fare:log', 'Embarked:missing', 'Name:extract']
+  0.8395 x  1 {'model': 'hgb', 'depth': 2, 'lr': 0.2, 'iters': 100} ['Pclass:raw', 'Pclass:onehot', 'Sex:raw', 'Age:log', 'Age:missing', 'Age:count', 'Parch:raw', 'Parch:count', 'Parch:family', 'Fare:raw', 'Embarked:missing', 'Embarked:onehot', 'Ticket:extract', 'Name:extract']
+  0.8395 x  1 {'iters': 200} ['Pclass:raw', 'Pclass:count', 'Pclass:onehot', 'Sex:raw', 'Age:raw', 'Age:qbin', 'Age:missing', 'Age:count', 'SibSp:qbin', 'SibSp:count', 'SibSp:family', 'Parch:raw', 'Parch:count', 'Fare:log', 'Embarked:missing', 'Embarked:onehot', 'Ticket:extract', 'Name:extract']
+  0.8383 x  1 {'depth': 3} ['Pclass:count', 'Sex:raw', 'Age:log', 'Age:qbin', 'Age:missing', 'Age:count', 'SibSp:raw', 'SibSp:qbin', 'SibSp:count', 'Parch:qbin', 'Parch:count', 'Parch:family', 'Fare:log', 'Fare:qbin', 'Fare:count', 'Embarked:missing', 'Cabin:extract', 'Ticket:count', 'Name:extract']
