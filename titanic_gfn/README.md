@@ -64,4 +64,68 @@ python -m titanic_gfn.compare                                       # random + T
 
 ## Results
 
-(filled in from `out/titanic_gfn/` after the committed run)
+Committed run: `python -m titanic_gfn.train --iters 300 --batch 32 --workers 3` (seed 0, β = 60),
+outputs in `titanic_gfn/results/`. 10,082 unique hypotheses were evaluated in
+22.6 min on 4 cores (18.1 min of it in CV fits). Random search and TPE ran on the same evaluator;
+random with the same budget, TPE with 3 000 evaluations (its sequential suggest step makes
+10 000 trials cost about an hour).
+
+"search CV" is the single 5-fold score the search optimised; "re-scored" is the honest local
+score: the same pipeline on three fresh 5-fold splits (seeds 1–3), averaged. "≥ 0.83" counts
+distinct evaluated hypotheses above that search-CV threshold. Diversity is the mean pairwise
+Jaccard distance between the cell sets of the top 10 (1 = disjoint).
+
+| method | unique evals | best search CV | best re-scored | top-10 re-scored mean | ≥ 0.83 | ≥ 0.84 | top-10 diversity |
+|---|---|---|---|---|---|---|---|
+| GFlowNet (all evaluated during training) | 10,082 | **0.8462** | **0.8361** | 0.8299 | 1,099 | 22 | 0.593 |
+| random search | 10,082 | 0.8417 | 0.8347 | 0.8281 | 454 | 4 | 0.572 |
+| Optuna TPE | TPE_ROW |
+| reference: Optuna branch best (LightGBM, hand-written hypotheses, 120 trials) | 120 | 0.8417 | 0.8324 | – | – | – | – |
+
+Best-so-far search CV against the number of unique evaluations (anytime behaviour):
+
+| evaluations | 500 | 1 000 | 2 000 | 3 000 | 5 000 | 10 082 |
+|---|---|---|---|---|---|---|
+| GFlowNet | 0.8395 | 0.8395 | 0.8406 | 0.8417 | 0.8462 | 0.8462 |
+| random | 0.8372 | 0.8372 | 0.8395 | 0.8395 | 0.8406 | 0.8417 |
+
+The trained generator itself (512 on-policy samples, no further search): mean search CV
+0.8212 against 0.755 for the untrained policy, 77 of 512 samples ≥ 0.83, all 512 distinct;
+re-scored mean of its top 10 0.8299, best 0.8365. Cell marginals in those samples:
+`Name:extract` (title) 0.94, `Sex:raw` 0.74, every other cell 0.54–0.63.
+
+## Analysis: is a GFlowNet a good engine for this?
+
+**What it did better than the controls.** At the same evaluation budget it found 2.4× more
+distinct hypotheses above 0.83 and 5× more above 0.84 than random search, its evaluated
+set has a higher mean (0.809 vs 0.791), and its best candidate re-scores
+highest (0.8361). The marginals are an interpretable by-product: the generator put
+title extraction into 94 % of its pipelines and Sex into 74 %, and was indifferent to the
+rest. That is a data-driven statement of which hypotheses matter on Titanic, and it is the
+part a human would otherwise write by hand.
+
+**What it did not do.** The best re-scored pipelines of all methods, the hand-written Optuna
+branch included, sit inside 0.83–0.84: the differences are one or two validation rows and
+below the CV noise of about 0.015. Nothing here beats a careful human plus LightGBM; the
+search-CV maxima (0.846, 0.842) are optimistic by 0.01 from selecting the maximum of
+thousands of noisy evaluations, which the re-scoring column shows. The generator never
+concentrated: all 512 samples are distinct because the reward landscape is flat once title
+and Sex are in, so the Boltzmann distribution over the remaining 28 cells is close to
+uniform. Sampling proportional to reward is the right objective for diverse candidates and
+the wrong one for picking a single winner.
+
+**Cost.** 10 000 CV fits for a 891-row table is 20 minutes with caching and 3 workers;
+without the cache or with a heavier model in the reward it would not fit a CPU budget. The
+cheap-model reward (small HistGradientBoosting) is itself a hypothesis about what transfers.
+
+**Where it would pay off.** The amortised generator is the real asset: once trained it emits
+diverse good pipelines instantly, which is what an ensemble or a transfer setting wants.
+Showing that needs more than one dataset: condition the policy on dataset meta-features and
+train across several Kaggle tables; this branch only establishes that the machinery works,
+is deterministic, and is competitive per evaluation on one small problem.
+
+Honest verdict for "universal analytics": GFlowNet is a sound engine for the hypothesis
+part (compositional feature construction, diverse candidates, interpretable marginals) and a
+poor one for continuous hyper-parameters; on a single small dataset it matches, not beats,
+random search plus a cheap re-scoring step, and the choice between them is a question of
+whether the generator will be reused.
