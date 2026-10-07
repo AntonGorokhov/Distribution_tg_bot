@@ -23,7 +23,7 @@ HYPOTHESES = {
     "title": [False, True],              # Mr/Mrs/Miss/Master/Rare from Name
     "family": [False, True],             # FamilySize = SibSp + Parch + 1, IsAlone
     "deck": [False, True],               # first letter of Cabin, U = unknown
-    "ticket_group": [False, True],       # passengers sharing the same ticket (fit data)
+    "ticket_group": [False, True],       # passengers on the same ticket among fit rows + the row itself
     "fare_log": [False, True],           # log1p(Fare)
     "age_bins": [False, True],           # ordinal age bucket next to raw age
     "age_impute": ["median", "title_pclass"],  # how missing Age is filled
@@ -74,6 +74,8 @@ class TitanicFeatures(BaseEstimator, TransformerMixin):
         self.age_median_by_title_pclass_ = {k: float(v) for k, v in sorted(grp.dropna().items())}
         self.embarked_mode_ = b["Embarked"].dropna().mode().sort_values().iloc[0]
         self.ticket_counts_ = b["Ticket"].value_counts().to_dict()
+        # rows seen at fit time are already inside ticket_counts_; a new row must add itself
+        self.fit_ids_ = frozenset(X["PassengerId"].tolist())
         return self
 
     # ------------------------------------------------------------ transform
@@ -118,7 +120,8 @@ class TitanicFeatures(BaseEstimator, TransformerMixin):
             for d in DECKS:
                 out[f"Deck_{d}"] = (b["Deck"] == d).astype(int)
         if self.ticket_group:
-            out["TicketGroup"] = b["Ticket"].map(self.ticket_counts_).fillna(1).astype(int)
+            new = ~X["PassengerId"].isin(self.fit_ids_)
+            out["TicketGroup"] = b["Ticket"].map(self.ticket_counts_).fillna(0).astype(int) + new.astype(int)
         return out
 
     def get_feature_names_out(self, input_features=None):

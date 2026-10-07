@@ -2,8 +2,9 @@
 
 Determinism comes from: TPESampler(seed), n_jobs=1 (sequential trials), seeded CV
 splits, seeded single-threaded estimators, and a fixed category order in every
-suggest_categorical call. The study is persisted to SQLite so it can be inspected or
-resumed; a resumed study continues the same deterministic sequence.
+suggest_categorical call. The study is persisted to SQLite for inspection only: run_study
+always starts from an empty study (study.db is deleted); resuming an existing study with a
+freshly constructed sampler would re-seed the RNG and diverge from an uninterrupted run.
 """
 from __future__ import annotations
 
@@ -48,17 +49,18 @@ def make_objective(X: pd.DataFrame, y: pd.Series, seed: int, n_repeats: int):
         pipe = build_pipeline(hyp, model, params, seed)
         scores = cross_val_score(pipe, X, y, cv=make_cv(seed, n_repeats=n_repeats), scoring="accuracy", n_jobs=1)
         trial.set_user_attr("cv_std", float(np.std(scores)))
-        trial.set_user_attr("n_features", int(pipe.named_steps["features"].fit(X).transform(X).shape[1]))
+        trial.set_user_attr("n_features", int(pipe.named_steps["features"].fit(X.iloc[:64]).transform(X.iloc[:64]).shape[1]))
         return float(np.mean(scores))
     return objective
 
 
-def run_study(X, y, seed: int, n_trials: int, out_dir: str, n_repeats: int = 2, study_name: str = "titanic") -> optuna.Study:
+def run_study(X, y, seed: int, n_trials: int, out_dir: str, n_repeats: int = 2, study_name: str = "titanic",
+              n_startup_trials: int = 15) -> optuna.Study:
     os.makedirs(out_dir, exist_ok=True)
     db = os.path.join(out_dir, "study.db")
     if os.path.exists(db):
         os.remove(db)
-    sampler = optuna.samplers.TPESampler(seed=seed, multivariate=True, group=True, n_startup_trials=15)
+    sampler = optuna.samplers.TPESampler(seed=seed, multivariate=True, group=True, n_startup_trials=n_startup_trials)
     study = optuna.create_study(direction="maximize", sampler=sampler, study_name=study_name,
                                 storage=f"sqlite:///{db}", load_if_exists=False)
     study.optimize(make_objective(X, y, seed, n_repeats), n_trials=n_trials, n_jobs=1, show_progress_bar=False)

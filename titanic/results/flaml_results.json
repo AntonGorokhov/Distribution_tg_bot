@@ -13,8 +13,9 @@
     "reg_lambda": 0.019162423007018176
   },
   "best_cv_accuracy": 0.83839,
-  "submission_sha256": "43e25892487bea0bc48fef61d8ec1affff34ce7f8562c77cab4bc9f6bb1bf59d",
-  "seconds": 3.8,
+  "best_cv_accuracy_per_fold_protocol": 0.82771,
+  "submission_sha256": "02abc0222093655168bdd65aa58c9edabf665495a9a635fab3ca2bab0ed526e6",
+  "seconds": 4.2,
   "env": {
     "python": "3.13.16",
     "numpy": "2.5.3",
@@ -23,7 +24,9 @@
     "optuna": "5.0.0",
     "lightgbm": "4.7.0",
     "PYTHONHASHSEED": "0",
+    "hash_randomization": 0,
     "OMP_NUM_THREADS": "1",
-    "git_commit": "f235b4fa3da5533921022ff4438047953cdaa9cf"
+    "git_commit": "c71361da4b29e6843b7faa52a119f4c8105f957b",
+    "git_dirty": false
   }
 }

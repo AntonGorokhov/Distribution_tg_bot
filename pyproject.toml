@@ -7,6 +7,10 @@ dependencies = ["torch>=2.0", "numpy", "matplotlib"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
+titanic = ["pandas", "scikit-learn", "optuna", "lightgbm", "flaml[automl]"]
 
 [tool.setuptools]
-packages = ["gfn"]
+packages = ["gfn", "titanic"]
+
+[tool.setuptools.package-data]
+titanic = ["data/*.csv"]
