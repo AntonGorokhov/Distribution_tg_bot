@@ -44,6 +44,17 @@ Default run result:
 
 Plots go to `out/`: `training.png`, `samples.png`, `target_vs_model.png`, `scatter.png`.
 
+## Interactive report
+
+```bash
+python report.py          # trains with 12 checkpoints, writes out/run.json and out/report.html
+```
+
+`out/report.html` is a self-contained page (data inlined, no server needed): an animated
+trajectory player that shows the canvas, the U-Net feature maps at every stage and the
+policy at each step, a scrubber over training checkpoints with the exact model
+distribution morphing towards R/Z, and the final log-log comparison over all states.
+
 Useful flags: `--size 8` (no exact eval, sample metrics only), `--iters`, `--batch`,
 `--tau` (mode sharpness), `--floor`, `--eps` (exploration), `--base` (U-Net width).
 
@@ -56,5 +67,7 @@ gfn/trainer.py   vectorised rollouts + trajectory-balance loss + training loop
 gfn/evaluate.py  exact DP distribution, sample-based metrics
 train.py         CLI entry point
 plot.py          diagnostic figures
+report.py        checkpointed run + data dump for the interactive report
+viz/             HTML template of the report (data goes in at /*__RUN_JSON__*/)
 tests/           smoke tests
 ```

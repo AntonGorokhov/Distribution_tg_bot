@@ -58,8 +58,14 @@ def tb_loss(r: Rollout, log_z: torch.Tensor, env: GridEnv) -> torch.Tensor:
 
 def train(env: GridEnv, model: UNetPolicy, iters: int = 1500, batch: int = 64,
           lr: float = 2e-3, lr_z: float = 1e-1, eps: float = 0.1,
-          log_every: int = 100, log_z_init: float = 0.0):
+          log_every: int = 100, log_z_init: float = 0.0,
+          checkpoints=(), on_checkpoint=None):
+    """on_checkpoint(it, model, log_z) is called at every iteration listed in `checkpoints`
+    (0 = before the first update)."""
     log_z = torch.nn.Parameter(torch.tensor(log_z_init))
+    checkpoints = set(checkpoints)
+    if on_checkpoint is not None and 0 in checkpoints:
+        on_checkpoint(0, model, log_z.detach())
     opt = torch.optim.Adam([
         {"params": model.parameters(), "lr": lr},
         {"params": [log_z], "lr": lr_z},
@@ -76,6 +82,8 @@ def train(env: GridEnv, model: UNetPolicy, iters: int = 1500, batch: int = 64,
         opt.step()
         sched.step()
         history.append((it, loss.item(), log_z.item(), r.log_r.mean().item()))
+        if on_checkpoint is not None and it in checkpoints:
+            on_checkpoint(it, model, log_z.detach())
         if it % log_every == 0 or it == 1:
             print(f"it {it:5d} | loss {loss.item():8.4f} | logZ {log_z.item():7.3f} "
                   f"| mean logR {r.log_r.mean().item():7.3f} | {time.time() - t0:5.1f}s")

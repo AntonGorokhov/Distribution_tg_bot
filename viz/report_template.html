@@ -1,0 +1,701 @@
+<title>Прогон Anal yst</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; the trajectory player is the single bordered panel, charts sit on the page ground. */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --fg:#161a21; --muted:#5d6675; --line:#e1e5ea; --line-strong:#c4cad3;
+  --ink:#1c2740;
+  --model:#2a78d6; --target:#eb6834; --pick:#1baf7a;
+  --heat:#2a78d6; --act:#eb6834;
+  --font-sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141619; --surface:#1c1f24; --fg:#e9ecf0; --muted:#9aa3ae; --line:#2b3038; --line-strong:#3d4450;
+    --ink:#e6e9ee; --model:#3987e5; --target:#d95926; --pick:#199e70; --heat:#3987e5; --act:#d95926; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141619; --surface:#1c1f24; --fg:#e9ecf0; --muted:#9aa3ae; --line:#2b3038; --line-strong:#3d4450;
+  --ink:#e6e9ee; --model:#3987e5; --target:#d95926; --pick:#199e70; --heat:#3987e5; --act:#d95926; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-sans);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:28px 72px}
+.page{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{margin:0;line-height:1.2;text-wrap:balance;font-weight:600}
+h1{font-size:clamp(28px,4vw,40px)}
+h2{font-size:clamp(20px,2.6vw,26px)}
+h3{font-size:15px}
+p{margin:0;max-width:68ch}
+a{color:var(--model)}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+section{display:flex;flex-direction:column;gap:20px}
+.sec-head{display:flex;flex-direction:column;gap:8px}
+.lead{font-size:16px}
+code,.eq{font-family:var(--font-mono);font-size:.92em}
+.eq{display:block;padding:10px 14px;border-left:2px solid var(--line-strong);color:var(--fg);overflow-x:auto;white-space:nowrap;max-width:100%}
+
+/* stat tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{display:flex;flex-direction:column;gap:2px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:6px;min-width:0}
+.tile .l{font-size:12px;color:var(--muted)}
+.tile .v{font-family:var(--font-mono);font-size:24px;overflow-wrap:anywhere;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile .s{font-size:12px;color:var(--muted);font-family:var(--font-mono)}
+
+/* pixel grids */
+.grid{display:grid;gap:2px;background:var(--line);border:2px solid var(--line);border-radius:4px;max-width:100%}
+.grid.c4{grid-template-columns:repeat(4,1fr)}
+.grid.c2{grid-template-columns:repeat(2,1fr)}
+.grid .cell{aspect-ratio:1;background:var(--surface);position:relative;transition:background .35s}
+.grid .cell.on{background:var(--ink)}
+.grid .cell.new{animation:pop .45s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes pop{0%{transform:scale(.3);opacity:.2}100%{transform:scale(1);opacity:1}}
+.grid .cell.masked::after{content:"";position:absolute;inset:30%;border-radius:50%;background:var(--ink);opacity:.9}
+.grid .cell.chosen{outline:3px solid var(--pick);outline-offset:-3px;z-index:1}
+.grid .cell.chosen.flash{animation:flash .6s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 0 var(--pick)}100%{box-shadow:0 0 0 10px transparent}}
+.g64{width:64px}.g40{width:40px}.g28{width:28px}.g20{width:20px}
+
+/* prototypes */
+.protos{display:flex;flex-wrap:wrap;gap:18px}
+.proto{display:flex;flex-direction:column;gap:6px;align-items:flex-start;font-size:12px;color:var(--muted)}
+.proto .grid{width:72px}
+.env-row{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+@media (max-width:760px){.env-row{grid-template-columns:1fr}}
+.dag{width:100%;max-width:520px;height:auto;display:block}
+.dag text{font-family:var(--font-mono);font-size:10px;fill:var(--muted)}
+
+/* player */
+.player{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:18px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.seg{display:inline-flex;gap:4px;flex-wrap:wrap}
+.seg .lbl{font-size:12px;color:var(--muted);align-self:center;margin-right:4px}
+button{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-strong);border-radius:5px;padding:5px 11px;cursor:pointer;line-height:1.2}
+button:hover{border-color:var(--fg)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--model);outline-offset:2px}
+button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button.icon{min-width:38px;font-family:var(--font-mono)}
+.panels{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:22px 32px}
+.panel.unet{grid-column:1/-1}
+@media (max-width:520px){.panels{grid-template-columns:1fr}}
+.panel{display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel h3{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.panel h3 > span:first-child{white-space:nowrap}
+.panel h3 .mono{font-weight:400;color:var(--muted);font-size:12px}
+.big{width:100%;max-width:220px}
+.pol{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:stretch;max-width:280px;transition:opacity .25s}
+.pol.pending{opacity:.3}
+.stopbar{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--muted);width:44px}
+.stopbar .track{flex:1;width:14px;border-radius:3px;background:var(--line);position:relative;overflow:hidden;min-height:60px}
+.stopbar .fill{position:absolute;left:0;right:0;bottom:0;background:var(--heat);transition:height .35s}
+.stopbar.chosen .track{outline:3px solid var(--pick)}
+.stopbar .pv{font-family:var(--font-mono)}
+.heat .cell{display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;color:var(--fg)}
+.heat .cell span{opacity:.9;mix-blend-mode:difference;color:#fff}
+.heat .cell.masked span{display:none}
+.stages{display:flex;gap:6px;align-items:flex-start;overflow-x:auto;padding-bottom:6px}
+.stage{display:flex;flex-direction:column;gap:6px;align-items:center;flex:1 1 0;min-width:88px;max-width:150px;padding:8px 6px;border-radius:6px;border:1px solid transparent;transition:border-color .25s,background .25s;font-size:11px;color:var(--muted);text-align:center}
+.stage .nm{font-weight:500;color:var(--fg)}
+.stage.lit{border-color:var(--act);background:color-mix(in oklab,var(--act) 8%,var(--surface))}
+.stage .grid{width:64px}
+.stage .ch{display:flex;gap:3px}
+.stage .ch .grid{width:20px}
+.arrow{align-self:center;color:var(--line-strong);flex:0 0 auto;font-size:18px;padding-top:40px}
+.skip{font-size:10px;color:var(--muted)}
+.stopl{font-family:var(--font-mono);font-size:11px}
+.ledger{display:flex;flex-direction:column;gap:6px;font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.ledger table{border-collapse:collapse;width:100%}
+.ledger th,.ledger td{text-align:right;padding:3px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ledger th{font-weight:500;color:var(--muted)}
+.ledger td:first-child,.ledger th:first-child{text-align:left}
+.ledger tr.cur td{background:color-mix(in oklab,var(--pick) 12%,transparent)}
+.ledger .wrap{overflow:auto;max-height:230px}
+.balance{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.balance .row{display:flex;justify-content:space-between;gap:12px}
+.balance .beam{height:8px;border-radius:4px;background:var(--line);position:relative;overflow:hidden}
+.balance .beam i{position:absolute;top:0;bottom:0;background:var(--pick);transition:left .4s,width .4s}
+.balance.off .beam i{background:var(--target)}
+.hint{font-size:12px;color:var(--muted)}
+
+/* convergence */
+.conv{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px}
+@media (max-width:860px){.conv{grid-template-columns:1fr}}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.chart{display:flex;flex-direction:column;gap:4px;min-width:0}
+.chart h3{font-size:13px;font-weight:500;color:var(--muted)}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.chart .ax{stroke:var(--line);stroke-width:1}
+.chart .tk{font-family:var(--font-mono);font-size:10px;fill:var(--muted)}
+.chart .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .ref{stroke:var(--target);stroke-width:1.5;stroke-dasharray:4 3}
+.chart .cur{transition:transform .45s ease}
+.chart .cur line{stroke:var(--fg);stroke-width:1}
+.chart .cur circle{stroke:var(--surface);stroke-width:2}
+.chart .ar{opacity:.1}
+.scrub{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.scrub input[type=range]{flex:1;min-width:160px;accent-color:var(--model)}
+.scrub .it{font-family:var(--font-mono);min-width:9ch}
+.bars{position:relative;height:220px;display:flex;align-items:flex-end;gap:2px;padding-left:38px;border-bottom:1px solid var(--line)}
+.bars .grp{flex:1;display:flex;gap:1px;align-items:flex-end;height:100%;min-width:0;cursor:default}
+.bars .grp i{flex:1;display:block;border-radius:2px 2px 0 0;transition:height .5s ease;min-height:1px}
+.bars .grp i.t{background:var(--target)}
+.bars .grp i.m{background:var(--model)}
+.bars .grp:hover i{filter:brightness(1.15)}
+.bars .gl{position:absolute;left:38px;right:0;border-top:1px solid var(--line);pointer-events:none}
+.bars .gl span{position:absolute;left:-38px;top:-8px;font-family:var(--font-mono);font-size:10px;color:var(--muted)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--sw)}
+.strip{display:flex;flex-wrap:wrap;gap:6px}
+.strip .grid{width:40px}
+.strip .grid.near{border-color:var(--pick)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px;align-items:baseline}
+.kv b{font-weight:500}
+.kv .mono{color:var(--fg)}
+
+/* results */
+.res{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:860px){.res{grid-template-columns:1fr}}
+.scatter{position:relative;width:100%;aspect-ratio:1;max-width:460px}
+.scatter canvas{width:100%;height:100%;display:block}
+table.metrics{border-collapse:collapse;width:100%;font-size:13px}
+table.metrics td,table.metrics th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+table.metrics td:first-child,table.metrics th:first-child{text-align:left}
+table.metrics th{font-weight:500;color:var(--muted)}
+.samples{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px;max-width:560px}
+.samples .grid.near{border-color:var(--pick)}
+
+.tip{position:fixed;z-index:10;pointer-events:none;background:var(--surface);color:var(--fg);border:1px solid var(--line-strong);border-radius:6px;padding:8px 10px;font-size:12px;font-family:var(--font-mono);display:flex;gap:10px;align-items:center;box-shadow:0 4px 14px rgba(0,0,0,.12);max-width:260px}
+.tip .grid{width:40px;flex:0 0 auto}
+.tip[hidden]{display:none}
+.files{font-family:var(--font-mono);font-size:13px;display:grid;grid-template-columns:auto 1fr;gap:4px 16px}
+@media (prefers-reduced-motion: reduce){
+  .grid .cell,.grid .cell.new,.grid .cell.chosen.flash,.stopbar .fill,.bars .grp i,.chart .cur,.balance .beam i,.stage{transition:none;animation:none}
+}
+</style>
+
+<div class="page">
+
+<header class="sec-head" style="gap:14px">
+  <div class="eyebrow">Anal yst · отчёт о прогоне</div>
+  <h1>Прогон GFlowNet: как U-Net учится рисовать по награде</h1>
+  <p class="lead">Модель строит бинарную картинку 4×4 по одному пикселю и должна в пределе выдавать каждую картинку с вероятностью, пропорциональной награде. Ниже видно, что происходит внутри U-Net на каждом шаге, как распределение сходится по ходу обучения и насколько итог совпадает с целью. Все числа из реального прогона на CPU.</p>
+  <div class="tiles" id="tiles"></div>
+</header>
+
+<section id="env">
+  <div class="sec-head">
+    <div class="eyebrow">1 · Среда</div>
+    <h2>Что рисуем и за что платят</h2>
+    <p>Состояние: холст 4×4, сначала пустой. Действие: закрасить любой пустой пиксель или остановиться (STOP). Награда синтетическая: три случайных прототипа, вокруг каждого бугор по расстоянию Хэмминга.</p>
+  </div>
+  <div class="env-row">
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <span class="eq" id="eq-reward"></span>
+      <div class="protos" id="protos"></div>
+      <p class="hint">Под каждым прототипом: его доля в целевом распределении R/Z и в точном распределении обученной модели.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <h3>Почему это DAG, а не дерево</h3>
+      <p class="hint">Одна и та же картинка достижима в разном порядке закраски. Для холста 2×2 показаны все 16 состояний по числу закрашенных пикселей; выделены два пути в одно состояние. Обратная политика P<sub>B</sub> равномерна по закрашенным пикселям, поэтому Σ log P<sub>B</sub> = −log n! и считается в явном виде.</p>
+      <svg class="dag" id="dag" viewBox="0 0 520 300" role="img" aria-label="Граф состояний холста 2 на 2"></svg>
+    </div>
+  </div>
+</section>
+
+<section id="play">
+  <div class="sec-head">
+    <div class="eyebrow">2 · Одна траектория</div>
+    <h2>Как модель рисует картинку</h2>
+    <p>На каждом шаге текущий холст проходит через U-Net: энкодер на 4×4, пулинг до 2×2, bottleneck, декодер с skip-связью обратно на 4×4. На выходе логит на каждый пиксель плюс логит STOP из bottleneck. Уже закрашенные пиксели маскируются. Из получившегося распределения сэмплируется действие.</p>
+  </div>
+  <div class="player">
+    <div class="controls">
+      <div class="seg" id="ck-seg"><span class="lbl">Модель после итерации</span></div>
+      <div class="seg" id="tr-seg"><span class="lbl">Траектория</span></div>
+      <div class="seg">
+        <button class="icon" id="btn-prev" aria-label="Шаг назад">‹</button>
+        <button class="icon" id="btn-play" aria-label="Пауза">❚❚</button>
+        <button class="icon" id="btn-next" aria-label="Шаг вперёд">›</button>
+      </div>
+      <div class="seg" id="sp-seg"><span class="lbl">Скорость</span></div>
+    </div>
+    <div class="panels">
+      <div class="panel">
+        <h3><span>Холст</span><span class="mono" id="step-lbl"></span></h3>
+        <div class="grid c4 big" id="canvas"></div>
+        <div class="hint" id="canvas-hint"></div>
+      </div>
+      <div class="panel">
+        <h3><span>Политика P<sub>F</sub>(a | s)</span><span class="mono" id="pol-lbl"></span></h3>
+        <div class="pol">
+          <div class="grid c4 heat" id="policy"></div>
+          <div class="stopbar" id="stopbar"><div class="track"><div class="fill"></div></div><span>STOP</span><span class="pv"></span></div>
+        </div>
+        <div class="hint">Точка: пиксель уже закрашен, действие запрещено. Зелёная рамка: выбранное действие.</div>
+      </div>
+      <div class="panel unet">
+        <h3><span>Внутри U-Net</span><span class="mono">средний |активация| по каналам</span></h3>
+        <div class="stages" id="stages"></div>
+        <div class="hint">Под энкодером и декодером: первые 4 канала. Декодер получает bottleneck (растянутый до 4×4) вместе с выходом энкодера через skip-связь.</div>
+      </div>
+    </div>
+    <div class="ledger">
+      <div class="wrap"><table id="ledger"></table></div>
+      <div class="balance" id="balance"></div>
+    </div>
+  </div>
+</section>
+
+<section id="train">
+  <div class="sec-head">
+    <div class="eyebrow">3 · Обучение</div>
+    <h2>Как распределение сходится к цели</h2>
+    <p>Лосс trajectory balance: квадрат невязки (log Z + Σ log P<sub>F</sub> − log R − Σ log P<sub>B</sub>) по батчу траекторий. В 12 чекпоинтах точное распределение модели посчитано динамическим программированием по всем 65 536 состояниям и сравнено с R/Z. Тяните ползунок или нажмите play.</p>
+  </div>
+  <div class="scrub">
+    <button class="icon" id="cv-play" aria-label="Проиграть обучение">▶</button>
+    <input type="range" id="cv-range" min="0" max="11" value="0" step="1" aria-label="Чекпоинт">
+    <span class="it" id="cv-it"></span>
+  </div>
+  <div class="conv">
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div class="charts" id="charts"></div>
+      <div class="kv" id="cv-kv"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <h3>40 самых вероятных состояний по цели</h3>
+      <div class="legend"><span style="--sw:var(--target)">R(x)/Z, цель</span><span style="--sw:var(--model)">P<sub>model</sub>(x), точно</span></div>
+      <div class="bars" id="bars"></div>
+      <div class="hint">Наведите на столбик, чтобы увидеть картинку. Три пика слева: сами прототипы.</div>
+      <h3 style="margin-top:8px">16 сэмплов модели на этом чекпоинте</h3>
+      <div class="strip" id="cv-strip"></div>
+      <div class="hint">Зелёная рамка: не дальше одного пикселя от прототипа.</div>
+    </div>
+  </div>
+</section>
+
+<section id="result">
+  <div class="sec-head">
+    <div class="eyebrow">4 · Итог</div>
+    <h2>Насколько модель совпала с целью</h2>
+    <p>Каждая точка на графике: одно из 65 536 состояний (показана случайная подвыборка плюс 150 самых вероятных). По горизонтали целевая вероятность, по вертикали точная вероятность модели, обе оси логарифмические. Идеал: все точки на диагонали.</p>
+  </div>
+  <div class="res">
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+      <div class="legend"><span style="--sw:var(--pick)">≤ 1 px от прототипа</span><span style="--sw:var(--model)">остальные</span></div>
+      <div class="scatter"><canvas id="scatter"></canvas></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <table class="metrics" id="metrics"></table>
+      <h3>64 сэмпла обученной модели</h3>
+      <div class="samples" id="samples"></div>
+    </div>
+  </div>
+</section>
+
+<section id="repro">
+  <div class="sec-head">
+    <div class="eyebrow">5 · Воспроизвести</div>
+    <h2>Что запускалось</h2>
+  </div>
+  <div class="files" id="files"></div>
+  <p class="hint" id="repro-hint"></p>
+</section>
+
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const RUN = /*__RUN_JSON__*/;
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (s, r = document) => r.querySelector(s);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const fmt = (x, d = 3) => (x == null || Number.isNaN(x)) ? '–' : Number(x).toFixed(d);
+const bits = id => Array.from({ length: 16 }, (_, j) => (id >> j) & 1);
+const rc = a => a === 16 ? 'STOP' : `(${(a >> 2) + 1},${(a & 3) + 1})`;
+
+/* ---------- pixel grids ---------- */
+function mkGrid(n, cls = '') {
+  const g = el('div', `grid c${n} ${cls}`);
+  for (let i = 0; i < n * n; i++) g.appendChild(el('div', 'cell'));
+  return g;
+}
+function paint(g, b, newIdx = -1) {
+  const cells = g.children;
+  for (let i = 0; i < cells.length; i++) {
+    cells[i].classList.toggle('on', !!b[i]);
+    cells[i].classList.remove('new');
+    if (i === newIdx) { void cells[i].offsetWidth; cells[i].classList.add('new'); }
+  }
+}
+function heat(g, vals, token, max, labels) {
+  const cells = g.children, m = max ?? Math.max(1e-9, ...vals);
+  for (let i = 0; i < cells.length; i++) {
+    const p = Math.max(0, Math.min(1, vals[i] / m));
+    cells[i].style.background = `color-mix(in oklab, var(${token}) ${Math.round(p * 100)}%, var(--surface))`;
+    if (labels) cells[i].innerHTML = `<span>${labels[i]}</span>`;
+  }
+}
+const miniGrid = (id, cls = '') => { const g = mkGrid(4, cls); paint(g, bits(id)); return g; };
+
+/* ---------- tooltip ---------- */
+const tip = $('#tip');
+function showTip(ev, html, id) {
+  tip.innerHTML = '';
+  if (id != null) tip.appendChild(miniGrid(id));
+  tip.appendChild(el('div', '', html));
+  tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 14;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+const hideTip = () => { tip.hidden = true; };
+
+/* ---------- header tiles ---------- */
+(function tiles() {
+  const f = RUN.final, m = RUN.meta;
+  const T = $('#tiles');
+  const mk = (l, v, s) => { const t = el('div', 'tile'); const vv = el('div', 'v', v); if (v.length > 7) vv.style.fontSize = '19px'; t.append(el('div', 'l', l), vv, el('div', 's', s)); T.appendChild(t); };
+  mk('TV-расстояние до R/Z', fmt(f.tv), 'точно, 65 536 состояний');
+  mk('Корреляция P_model и R/Z', fmt(f.corr, 4), 'по всем состояниям');
+  mk('log Z: модель / истина', `${fmt(f.log_z, 2)} / ${fmt(RUN.true_log_z, 2)}`, 'обучаемый скаляр');
+  mk('Масса около прототипов', `${fmt(f.mass1px_exact, 3)} / ${fmt(RUN.target.mass1px, 3)}`, '≤ 1 px, модель / цель');
+  mk('Обучение', `${Math.round(m.train_seconds)} с`, `${m.iters} итераций × ${m.batch}, ${m.threads} потока CPU`);
+  mk('Параметров U-Net', (m.params / 1000).toFixed(1) + 'k', `base = ${m.base} каналов`);
+})();
+
+/* ---------- env ---------- */
+(function env() {
+  $('#eq-reward').textContent = `R(x) = ${RUN.meta.floor} + Σ_k exp(−hamming(x, proto_k) / ${RUN.meta.tau}),  k = 1..${RUN.meta.n_protos}`;
+  const P = $('#protos'), last = RUN.checkpoints[RUN.checkpoints.length - 1];
+  RUN.protos.forEach((b, k) => {
+    const d = el('div', 'proto');
+    const g = mkGrid(4); paint(g, b);
+    d.append(el('div', 'eyebrow', `прототип ${k + 1}`), g,
+      el('div', 'mono', `цель ${fmt(RUN.target.proto_hits[k])}`),
+      el('div', 'mono', `модель ${fmt(last.proto_hits[k])}`));
+    P.appendChild(d);
+  });
+  // DAG of the 2x2 canvas: 16 states in layers by popcount
+  const svg = $('#dag'), NS = 'http://www.w3.org/2000/svg';
+  const pop = i => [0, 1, 2, 3].reduce((s, j) => s + ((i >> j) & 1), 0);
+  const layers = [[], [], [], [], []];
+  for (let i = 0; i < 16; i++) layers[pop(i)].push(i);
+  const pos = {};
+  layers.forEach((L, l) => L.forEach((s, j) => { pos[s] = { x: 40 + l * 110, y: 150 + (j - (L.length - 1) / 2) * 52 }; }));
+  const hl = 0b1010, pA = [0, 0b0010, hl], pB = [0, 0b1000, hl];
+  const onPath = (a, b) => (pA.includes(a) && pA.includes(b) && pop(b) === pop(a) + 1) || (pB.includes(a) && pB.includes(b) && pop(b) === pop(a) + 1);
+  const add = (n, attrs, parent = svg) => { const e = document.createElementNS(NS, n); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+  for (let s = 0; s < 16; s++) for (let j = 0; j < 4; j++) if (!((s >> j) & 1)) {
+    const t = s | (1 << j), a = pos[s], b = pos[t], on = onPath(s, t);
+    add('line', { x1: a.x + 20, y1: a.y, x2: b.x - 20, y2: b.y, stroke: on ? 'var(--pick)' : 'var(--line-strong)', 'stroke-width': on ? 2.5 : 1 });
+  }
+  for (let s = 0; s < 16; s++) {
+    const p = pos[s], g = add('g', { transform: `translate(${p.x - 16},${p.y - 16})` });
+    add('rect', { x: -3, y: -3, width: 38, height: 38, rx: 4, fill: 'var(--surface)', stroke: s === hl ? 'var(--pick)' : 'var(--line-strong)', 'stroke-width': s === hl ? 2.5 : 1 }, g);
+    for (let j = 0; j < 4; j++) add('rect', { x: (j & 1) * 17, y: (j >> 1) * 17, width: 15, height: 15, rx: 2, fill: (s >> j) & 1 ? 'var(--ink)' : 'var(--line)' }, g);
+  }
+  [0, 1, 2, 3, 4].forEach(l => { const t = add('text', { x: 40 + l * 110, y: 292, 'text-anchor': 'middle' }); t.textContent = `n = ${l}`; });
+})();
+
+/* ---------- trajectory player ---------- */
+const PL = (() => {
+  const cks = Object.keys(RUN.trajectories).map(Number).sort((a, b) => a - b);
+  const st = { ck: String(cks[cks.length - 1]), ti: 0, frame: 0, playing: !REDUCED, speed: 1, token: 0 };
+  const canvasG = mkGrid(4, 'big'); $('#canvas').replaceWith(canvasG); canvasG.id = 'canvas';
+  const polG = mkGrid(4, 'heat'); $('#policy').replaceWith(polG); polG.id = 'policy';
+  const stopbar = $('#stopbar');
+  const STAGES = [
+    { key: 'in', nm: 'Вход', sub: '1 × 4×4', n: 4 },
+    { key: 'e1', nm: 'Энкодер', sub: '32 × 4×4', n: 4, ch: 'e1c' },
+    { key: 'e2', nm: 'Пулинг + энкодер', sub: '64 × 2×2', n: 2 },
+    { key: 'mid', nm: 'Bottleneck', sub: '64 × 2×2', n: 2, stop: true },
+    { key: 'd1', nm: 'Декодер + skip', sub: '32 × 4×4', n: 4, ch: 'd1c' },
+    { key: 'logits', nm: 'Логиты', sub: '1 × 4×4', n: 4 },
+  ];
+  const stagesEl = $('#stages'), stageG = {};
+  STAGES.forEach((s, i) => {
+    if (i) stagesEl.appendChild(el('div', 'arrow', '→'));
+    const d = el('div', 'stage'); d.dataset.key = s.key;
+    d.append(el('div', 'nm', s.nm), el('div', 'skip', s.sub));
+    const g = mkGrid(s.n, s.key === 'in' ? '' : 'heat'); d.appendChild(g); stageG[s.key] = g;
+    if (s.ch) { const row = el('div', 'ch'); stageG[s.ch] = []; for (let c = 0; c < 4; c++) { const cg = mkGrid(4, 'heat'); row.appendChild(cg); stageG[s.ch].push(cg); } d.appendChild(row); }
+    if (s.stop) { const sl = el('div', 'stopl'); d.appendChild(sl); stageG.stopl = sl; }
+    stagesEl.appendChild(d);
+  });
+  const traj = () => RUN.trajectories[st.ck][st.ti];
+  const frames = () => traj().steps.length + 1;
+
+  function segs() {
+    const C = $('#ck-seg'); C.querySelectorAll('button').forEach(b => b.remove());
+    cks.forEach(c => { const b = el('button', String(c) === st.ck ? 'on' : '', String(c)); b.onclick = () => { st.ck = String(c); st.ti = 0; segs(); go(0, true); }; C.appendChild(b); });
+    const T = $('#tr-seg'); T.querySelectorAll('button').forEach(b => b.remove());
+    RUN.trajectories[st.ck].forEach((t, i) => { const b = el('button', i === st.ti ? 'on' : '', String(i + 1)); b.title = `${t.n} пикс., log R = ${fmt(t.log_r, 2)}`; b.onclick = () => { st.ti = i; segs(); go(0, true); }; T.appendChild(b); });
+    const S = $('#sp-seg'); S.querySelectorAll('button').forEach(b => b.remove());
+    [0.5, 1, 2].forEach(v => { const b = el('button', v === st.speed ? 'on' : '', v + '×'); b.onclick = () => { st.speed = v; segs(); if (st.playing) schedule(); }; S.appendChild(b); });
+    $('#btn-play').textContent = st.playing ? '❚❚' : '▶';
+    $('#btn-play').setAttribute('aria-label', st.playing ? 'Пауза' : 'Играть');
+  }
+
+  function render(i, animate) {
+    const t = traj(), steps = t.steps, L = steps.length, term = i >= L;
+    const s = steps[Math.min(i, L - 1)];
+    const cur = term ? bits(t.final) : bits(s.canvas);
+    const prev = i > 0 ? steps[i - 1] : null;
+    const newIdx = prev && prev.action < 16 ? prev.action : -1;
+    paint(canvasG, cur, animate ? newIdx : -1);
+    const n = cur.reduce((a, b) => a + b, 0);
+    $('#step-lbl').textContent = term ? `конец · ${n} пикс.` : `шаг ${i} · ${n} пикс.`;
+    $('#canvas-hint').textContent = term ? `Терминальное состояние. log R(x) = ${fmt(t.log_r, 3)}, R = ${fmt(Math.exp(t.log_r), 4)}` : (i === 0 ? 'Пустой холст подаётся в U-Net.' : `Закрашен пиксель ${rc(prev.action)}.`);
+
+    // U-Net stages
+    const a = s.acts, delay = animate && !REDUCED ? 110 / st.speed : 0;
+    stagesEl.querySelectorAll('.stage').forEach(d => d.classList.remove('lit'));
+    paint(stageG.in, bits(s.canvas));
+    heat(stageG.e1, a.e1, '--act'); heat(stageG.e2, a.e2, '--act'); heat(stageG.mid, a.mid, '--act'); heat(stageG.d1, a.d1, '--act');
+    const lg = a.logits, lmin = Math.min(...lg), lmax = Math.max(...lg);
+    heat(stageG.logits, lg.map(v => v - lmin), '--act', Math.max(1e-6, lmax - lmin));
+    const e1max = Math.max(1e-9, ...a.e1c.flat()), d1max = Math.max(1e-9, ...a.d1c.flat());
+    a.e1c.forEach((c, k) => heat(stageG.e1c[k], c.map(Math.abs), '--act', e1max));
+    a.d1c.forEach((c, k) => heat(stageG.d1c[k], c.map(Math.abs), '--act', d1max));
+    stageG.stopl.textContent = `STOP-логит ${fmt(a.stop_logit, 2)}`;
+    const tok = ++st.token;
+    STAGES.forEach((sg, k) => setTimeout(() => { if (tok === st.token) stagesEl.querySelector(`.stage[data-key="${sg.key}"]`).classList.add('lit'); }, delay * k));
+
+    // policy: dimmed while the U-Net "computes", then refreshed
+    const polWrap = polG.parentElement;
+    if (animate && !REDUCED && !term) { polWrap.classList.add('pending'); polG.querySelectorAll('.chosen').forEach(c => c.classList.remove('chosen', 'flash')); stopbar.classList.remove('chosen'); }
+    const show = () => {
+      if (tok !== st.token) return;
+      polWrap.classList.remove('pending');
+      const pr = s.probs, pix = pr.slice(0, 16), pmax = Math.max(...pix, pr[16], 1e-9);
+      heat(polG, pix, '--heat', pmax, pix.map(v => (v * 100).toFixed(0)));
+      const cb = bits(s.canvas);
+      for (let k = 0; k < 16; k++) { polG.children[k].classList.toggle('masked', !!cb[k]); polG.children[k].classList.remove('chosen', 'flash'); }
+      stopbar.classList.remove('chosen');
+      $('.fill', stopbar).style.height = (pr[16] / pmax * 100).toFixed(1) + '%';
+      $('.pv', stopbar).textContent = (pr[16] * 100).toFixed(0) + '%';
+      $('#pol-lbl').textContent = term ? 'после STOP' : `${17 - cb.reduce((a, b) => a + b, 0)} допустимых действий`;
+      setTimeout(() => {
+        if (tok !== st.token) return;
+        if (s.action === 16) stopbar.classList.add('chosen');
+        else { const c = polG.children[s.action]; c.classList.add('chosen'); if (animate) c.classList.add('flash'); }
+      }, animate && !REDUCED ? 220 / st.speed : 0);
+    };
+    setTimeout(show, delay * STAGES.length + (animate && !REDUCED ? 80 : 0));
+
+    // ledger
+    const tb = $('#ledger'); let h = '<tr><th>t</th><th>действие</th><th>P_F</th><th>log P_F</th><th>Σ log P_F</th></tr>';
+    for (let k = 0; k <= Math.min(i, L - 1); k++) {
+      const q = steps[k];
+      h += `<tr class="${k === i ? 'cur' : ''}"><td>${k}</td><td>${rc(q.action)}</td><td>${fmt(q.probs[q.action], 3)}</td><td>${fmt(q.logp, 3)}</td><td>${fmt(q.cum_logpf, 3)}</td></tr>`;
+    }
+    tb.innerHTML = h;
+    const row = tb.querySelector('tr.cur'); if (row) row.scrollIntoView({ block: 'nearest' });
+    const B = $('#balance');
+    if (term) {
+      const lhs = t.log_z + t.log_pf, rhs = t.log_r + t.log_pb;
+      const lo = Math.min(lhs, rhs), hi = Math.max(lhs, rhs), span = Math.max(1, Math.abs(lo) * 0.25, hi - lo);
+      const left = Math.min(lhs, rhs) - span / 2, right = Math.max(lhs, rhs) + span / 2;
+      const pct = v => ((v - left) / (right - left) * 100).toFixed(1);
+      B.classList.toggle('off', Math.abs(t.residual) > 0.5);
+      B.innerHTML = `<div class="row"><span>log Z + Σ log P<sub>F</sub> = ${fmt(t.log_z, 3)} + (${fmt(t.log_pf, 3)}) = <b>${fmt(lhs, 3)}</b></span><span>log R + Σ log P<sub>B</sub> = ${fmt(t.log_r, 3)} − log ${t.n}! = <b>${fmt(rhs, 3)}</b></span></div>
+        <div class="beam"><i style="left:${pct(lo)}%;width:${Math.max(0.6, pct(hi) - pct(lo))}%"></i></div>
+        <div class="row"><span class="hint">Trajectory balance: обе стороны должны совпасть. Невязка этой траектории</span><span class="mono">${t.residual >= 0 ? '+' : ''}${fmt(t.residual, 3)}</span></div>`;
+    } else {
+      B.classList.remove('off');
+      B.innerHTML = `<div class="row"><span class="hint">Накопленный log P<sub>F</sub> траектории</span><span class="mono">${fmt(s.cum_logpf, 3)}</span></div>
+        <div class="row"><span class="hint">Σ log P<sub>B</sub> = −log n! при n = ${n}</span><span class="mono">${fmt(-lgamma(n + 1), 3)}</span></div>
+        <div class="row"><span class="hint">Невязка TB станет известна в конце траектории, когда появится log R(x).</span></div>`;
+    }
+  }
+  function lgamma(z) { // Lanczos, enough for z <= 17
+    const g = 7, c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+    z -= 1; let x = c[0]; for (let i = 1; i < g + 2; i++) x += c[i] / (z + i);
+    const t = z + g + 0.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+  }
+  let timer = null;
+  function schedule() {
+    clearTimeout(timer); if (!st.playing) return;
+    const term = st.frame >= frames() - 1;
+    timer = setTimeout(() => {
+      if (term) { st.ti = (st.ti + 1) % RUN.trajectories[st.ck].length; segs(); go(0, true); }
+      else go(st.frame + 1, true);
+    }, (term ? 2600 : 1500) / st.speed);
+  }
+  function go(i, animate) { st.frame = Math.max(0, Math.min(frames() - 1, i)); render(st.frame, animate); schedule(); }
+  $('#btn-play').onclick = () => { st.playing = !st.playing; segs(); schedule(); };
+  $('#btn-prev').onclick = () => { st.playing = false; segs(); go(st.frame - 1, false); };
+  $('#btn-next').onclick = () => { st.playing = false; segs(); go(st.frame + 1, true); };
+  segs(); go(0, false);
+  return st;
+})();
+
+/* ---------- convergence ---------- */
+(function conv() {
+  const C = RUN.checkpoints, H = RUN.history, K = C.length;
+  const range = $('#cv-range'); range.max = K - 1;
+  const W = 300, Hh = 150, pad = { l: 40, r: 10, t: 10, b: 22 };
+  const sx = it => pad.l + (it / RUN.meta.iters) * (W - pad.l - pad.r);
+  const charts = [
+    { id: 'loss', title: 'Лосс TB (log)', xs: H.it, ys: H.loss, log: true, color: 'var(--model)' },
+    { id: 'logz', title: 'log Z: модель и истина (пунктир)', xs: H.it, ys: H.log_z, ref: RUN.true_log_z, color: 'var(--model)' },
+    { id: 'tv', title: 'TV-расстояние до R/Z по чекпоинтам', xs: C.map(c => c.it), ys: C.map(c => c.tv), dots: true, color: 'var(--model)', zero: true },
+  ];
+  const ticksLog = (lo, hi) => { const r = []; for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) r.push(10 ** e); return r; };
+  const ticksLin = (lo, hi) => { const span = hi - lo, step = [1, 2, 5, 10].map(m => m * 10 ** Math.floor(Math.log10(span / 3))).find(s => span / s <= 6) || span; const r = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) r.push(+v.toFixed(6)); return r; };
+  const chartsEl = $('#charts');
+  charts.forEach(ch => {
+    let lo = Math.min(...ch.ys, ch.ref ?? Infinity), hi = Math.max(...ch.ys, ch.ref ?? -Infinity);
+    if (ch.zero) lo = 0;
+    if (ch.log) { lo = Math.max(lo, 1e-4); }
+    else { const m = (hi - lo) * 0.08; lo -= m; hi += m; }
+    const sy = v => ch.log ? pad.t + (1 - (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo))) * (Hh - pad.t - pad.b)
+      : pad.t + (1 - (v - lo) / (hi - lo)) * (Hh - pad.t - pad.b);
+    ch.sy = sy;
+    const ticks = ch.log ? ticksLog(lo, hi) : ticksLin(lo, hi);
+    let s = `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${ch.title}">`;
+    ticks.forEach(v => { if (v < lo || v > hi) return; const y = sy(v).toFixed(1); s += `<line class="ax" x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}"/><text class="tk" x="${pad.l - 5}" y="${(+y + 3).toFixed(1)}" text-anchor="end">${ch.log ? (v >= 1 ? v : v.toString()) : v}</text>`; });
+    [0, 500, 1000, 1500].filter(v => v <= RUN.meta.iters).forEach(v => { s += `<text class="tk" x="${sx(v).toFixed(1)}" y="${Hh - 6}" text-anchor="middle">${v}</text>`; });
+    s += `<line class="ax" x1="${pad.l}" x2="${W - pad.r}" y1="${Hh - pad.b}" y2="${Hh - pad.b}"/>`;
+    if (ch.ref != null) s += `<line class="ref" x1="${pad.l}" x2="${W - pad.r}" y1="${sy(ch.ref).toFixed(1)}" y2="${sy(ch.ref).toFixed(1)}"/>`;
+    const pts = ch.xs.map((x, i) => `${sx(x).toFixed(1)},${sy(Math.max(ch.ys[i], lo)).toFixed(1)}`);
+    if (!ch.log) s += `<path class="ar" fill="${ch.color}" d="M${sx(ch.xs[0]).toFixed(1)},${Hh - pad.b} L${pts.join(' L')} L${sx(ch.xs[ch.xs.length - 1]).toFixed(1)},${Hh - pad.b} Z"/>`;
+    s += `<path class="ln" stroke="${ch.color}" d="M${pts.join(' L')}"/>`;
+    if (ch.dots) ch.xs.forEach((x, i) => { s += `<circle cx="${sx(x).toFixed(1)}" cy="${sy(ch.ys[i]).toFixed(1)}" r="3.5" fill="${ch.color}" stroke="var(--surface)" stroke-width="2"/>`; });
+    s += `<g class="cur"><line x1="0" x2="0" y1="${pad.t}" y2="${Hh - pad.b}"/><circle cx="0" cy="0" r="4.5" fill="${ch.color}"/></g></svg>`;
+    const d = el('div', 'chart'); d.innerHTML = `<h3>${ch.title}</h3>${s}`; chartsEl.appendChild(d);
+    ch.svg = d.querySelector('svg'); ch.cur = d.querySelector('.cur');
+    ch.svg.addEventListener('mousemove', ev => {
+      const r = ch.svg.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * W;
+      const it = Math.round((x - pad.l) / (W - pad.l - pad.r) * RUN.meta.iters);
+      let best = 0; ch.xs.forEach((v, i) => { if (Math.abs(v - it) < Math.abs(ch.xs[best] - it)) best = i; });
+      showTip(ev, `итерация ${ch.xs[best]}<br>${ch.title.split(' ')[0]} ${fmt(ch.ys[best], 4)}`);
+    });
+    ch.svg.addEventListener('mouseleave', hideTip);
+  });
+  // bars
+  const barsEl = $('#bars'), T = RUN.top40, pmax = Math.max(...T.p_star, ...C.map(c => Math.max(...c.top40_p)));
+  ticksLin(0, pmax).forEach(v => { if (v === 0 || v > pmax) return; const g = el('div', 'gl'); g.style.bottom = (v / pmax * 100) + '%'; g.innerHTML = `<span>${v}</span>`; barsEl.appendChild(g); });
+  const grps = T.ids.map((id, i) => {
+    const g = el('div', 'grp'); const t = el('i', 't'), m = el('i', 'm'); g.append(t, m);
+    t.style.height = (T.p_star[i] / pmax * 100) + '%'; m.style.height = '0%';
+    g.addEventListener('mousemove', ev => showTip(ev, `#${i + 1}, ${T.n[i]} пикс., ${T.hmin[i]} px от прототипа<br>цель ${fmt(T.p_star[i], 4)}<br>модель ${fmt(C[+range.value].top40_p[i], 4)}`, id));
+    g.addEventListener('mouseleave', hideTip);
+    barsEl.appendChild(g); return m;
+  });
+  const strip = $('#cv-strip'), kv = $('#cv-kv'), protoFlat = RUN.protos;
+  const hmin = id => { const b = bits(id); return Math.min(...protoFlat.map(p => p.reduce((s, v, i) => s + (v !== b[i] ? 1 : 0), 0))); };
+  function setK(k) {
+    const c = C[k]; range.value = k;
+    $('#cv-it').textContent = `итерация ${c.it}`;
+    charts.forEach(ch => {
+      const idx = ch.xs.indexOf(c.it) >= 0 ? ch.xs.indexOf(c.it) : ch.xs.findIndex(v => v >= c.it);
+      const y = ch.sy(Math.max(ch.ys[Math.max(0, idx)], ch.log ? 1e-4 : -Infinity));
+      ch.cur.style.transform = `translate(${sx(c.it).toFixed(1)}px, 0)`;
+      ch.cur.querySelector('circle').setAttribute('cy', y.toFixed(1));
+    });
+    grps.forEach((m, i) => { m.style.height = (c.top40_p[i] / pmax * 100) + '%'; });
+    strip.innerHTML = ''; c.samples.forEach(id => strip.appendChild(miniGrid(id, hmin(id) <= 1 ? 'near' : '')));
+    kv.innerHTML = `<b>TV до R/Z</b><span class="mono">${fmt(c.tv, 4)}</span><b>корреляция</b><span class="mono">${fmt(c.corr, 4)}</span><b>log Z</b><span class="mono">${fmt(c.log_z, 3)} (истина ${fmt(RUN.true_log_z, 3)})</span><b>масса ≤ 1 px</b><span class="mono">${fmt(c.mass1px, 3)} (цель ${fmt(RUN.target.mass1px, 3)})</span><b>P на прототипах</b><span class="mono">${c.proto_hits.map(v => fmt(v, 3)).join(' · ')} (цель ${RUN.target.proto_hits.map(v => fmt(v, 3)).join(' · ')})</span>`;
+  }
+  let timer = null, playing = false;
+  const btn = $('#cv-play');
+  function play() {
+    playing = true; btn.textContent = '❚❚'; btn.setAttribute('aria-label', 'Пауза');
+    const step = () => { const k = +range.value; if (k >= K - 1) { stop(); return; } setK(k + 1); timer = setTimeout(step, 900); };
+    if (+range.value >= K - 1) setK(0);
+    timer = setTimeout(step, 700);
+  }
+  function stop() { playing = false; clearTimeout(timer); btn.textContent = '▶'; btn.setAttribute('aria-label', 'Проиграть обучение'); }
+  btn.onclick = () => playing ? stop() : play();
+  range.oninput = () => { stop(); setK(+range.value); };
+  setK(REDUCED ? K - 1 : 0);
+  if (!REDUCED && 'IntersectionObserver' in window) {
+    let fired = false;
+    new IntersectionObserver(es => { if (!fired && es.some(e => e.isIntersecting)) { fired = true; play(); } }, { threshold: 0.4 }).observe(barsEl);
+  }
+})();
+
+/* ---------- results ---------- */
+(function results() {
+  const f = RUN.final, S = f.scatter, cv = $('#scatter'), wrap = cv.parentElement;
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  let pts = [];
+  function draw() {
+    const w = wrap.clientWidth, h = wrap.clientHeight, dpr = devicePixelRatio || 1;
+    cv.width = w * dpr; cv.height = h * dpr; const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+    const pad = { l: 44, r: 10, t: 10, b: 34 };
+    const vals = S.p_star.concat(S.p_model).filter(v => v > 0);
+    const lo = Math.log10(Math.min(...vals)) - 0.2, hi = Math.log10(Math.max(...vals)) + 0.2;
+    const X = v => pad.l + (Math.log10(Math.max(v, 1e-12)) - lo) / (hi - lo) * (w - pad.l - pad.r);
+    const Y = v => pad.t + (1 - (Math.log10(Math.max(v, 1e-12)) - lo) / (hi - lo)) * (h - pad.t - pad.b);
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = css('--line'); ctx.lineWidth = 1; ctx.fillStyle = css('--muted'); ctx.font = '10px ' + css('--font-mono');
+    for (let e = Math.ceil(lo); e <= Math.floor(hi); e++) {
+      const x = X(10 ** e), y = Y(10 ** e);
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, h - pad.b); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+      ctx.textAlign = 'center'; ctx.fillText('1e' + e, x, h - pad.b + 14);
+      ctx.textAlign = 'right'; ctx.fillText('1e' + e, pad.l - 6, y + 3);
+    }
+    ctx.textAlign = 'center'; ctx.fillText('R(x)/Z', (pad.l + w - pad.r) / 2, h - 4);
+    ctx.save(); ctx.translate(10, (pad.t + h - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('P_model(x)', 0, 0); ctx.restore();
+    ctx.strokeStyle = css('--fg'); ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(X(10 ** lo), Y(10 ** lo)); ctx.lineTo(X(10 ** hi), Y(10 ** hi)); ctx.stroke(); ctx.setLineDash([]);
+    pts = [];
+    const cm = css('--model'), cp = css('--pick');
+    ctx.globalAlpha = 0.55;
+    for (let i = 0; i < S.p_star.length; i++) {
+      const x = X(S.p_star[i]), y = Y(S.p_model[i]); pts.push([x, y, i]);
+      ctx.fillStyle = S.hmin[i] <= 1 ? cp : cm; ctx.beginPath(); ctx.arc(x, y, S.hmin[i] <= 1 ? 3 : 2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  draw();
+  new ResizeObserver(draw).observe(wrap);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  cv.addEventListener('mousemove', ev => {
+    const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    let best = null, bd = 100;
+    for (const [x, y, i] of pts) { const d = (x - mx) ** 2 + (y - my) ** 2; if (d < bd) { bd = d; best = i; } }
+    if (best == null) { hideTip(); return; }
+    const sub = RUN.final.scatter;
+    showTip(ev, `${sub.hmin[best]} px от прототипа<br>цель ${sub.p_star[best].toExponential(2)}<br>модель ${sub.p_model[best].toExponential(2)}`, null);
+  });
+  cv.addEventListener('mouseleave', hideTip);
+  // metrics table
+  const rows = [
+    ['TV-расстояние P_model и R/Z', fmt(f.tv, 4), '0'],
+    ['Корреляция P_model и R/Z', fmt(f.corr, 4), '1'],
+    ['log Z', fmt(f.log_z, 3), fmt(RUN.true_log_z, 3)],
+    ['Масса ≤ 1 px от прототипа (точно)', fmt(f.mass1px_exact, 3), fmt(RUN.target.mass1px, 3)],
+    ['Доля сэмплов ≤ 1 px (20 000 сэмплов)', fmt(f.frac1px, 3), fmt(RUN.target.mass1px, 3)],
+    ['Частота прототипов в сэмплах', f.proto_hits_sample.map(v => fmt(v, 3)).join(' · '), RUN.target.proto_hits.map(v => fmt(v, 3)).join(' · ')],
+    ['Уникальных состояний в 20 000 сэмплах', f.unique_states, '–'],
+    ['Средняя награда сэмпла', fmt(f.mean_reward, 4), '–'],
+  ];
+  $('#metrics').innerHTML = '<tr><th>метрика</th><th>модель</th><th>цель</th></tr>' + rows.map(r => `<tr><td>${r[0]}</td><td class="mono">${r[1]}</td><td class="mono">${r[2]}</td></tr>`).join('');
+  const sm = $('#samples');
+  f.samples.forEach((id, i) => sm.appendChild(miniGrid(id, f.samples_hmin[i] <= 1 ? 'near' : '')));
+})();
+
+/* ---------- repro ---------- */
+(function repro() {
+  const m = RUN.meta;
+  $('#files').innerHTML = [
+    ['python report.py', 'обучение с чекпоинтами, дамп out/run.json и этой страницы'],
+    ['gfn/env.py', 'среда, награда, перечисление всех состояний'],
+    ['gfn/unet.py', 'U-Net-политика, выдаёт 17 логитов'],
+    ['gfn/trainer.py', 'роллауты батчем, лосс trajectory balance, цикл обучения'],
+    ['gfn/evaluate.py', 'точное P_model через DP по DAG'],
+  ].map(r => `<span>${r[0]}</span><span class="muted">${r[1]}</span>`).join('');
+  $('#repro-hint').textContent = `Параметры: сетка ${m.size}×${m.size}, ${m.n_protos} прототипа, tau = ${m.tau}, floor = ${m.floor}, ${m.iters} итераций, батч ${m.batch}, lr = ${m.lr}, eps-exploration ${m.eps}, seed ${m.seed}. Все ${m.n_states.toLocaleString('ru-RU')} состояний перечислены точно.`;
+})();
+</script>

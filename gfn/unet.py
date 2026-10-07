@@ -31,7 +31,7 @@ class UNetPolicy(nn.Module):
         self.stop = nn.Sequential(nn.Linear(base * 2, base), nn.SiLU(), nn.Linear(base, 1))
         nn.init.zeros_(self.head.weight); nn.init.zeros_(self.head.bias)
 
-    def forward(self, canvas: torch.Tensor) -> torch.Tensor:
+    def forward_with_activations(self, canvas: torch.Tensor) -> tuple[torch.Tensor, dict]:
         B, _, H, W = canvas.shape
         e1 = self.enc1(canvas)                       # (B, c, H, W)
         e2 = self.enc2(F.max_pool2d(e1, 2))          # (B, 2c, H/2, W/2)
@@ -40,4 +40,8 @@ class UNetPolicy(nn.Module):
         d1 = self.dec1(torch.cat([up, e1], dim=1))   # (B, c, H, W)
         pix = self.head(d1).reshape(B, H * W)
         stop = self.stop(m.mean(dim=(2, 3)))         # (B, 1)
-        return torch.cat([pix, stop], dim=1)
+        logits = torch.cat([pix, stop], dim=1)
+        return logits, {"e1": e1, "e2": e2, "mid": m, "d1": d1, "pix": pix, "stop": stop}
+
+    def forward(self, canvas: torch.Tensor) -> torch.Tensor:
+        return self.forward_with_activations(canvas)[0]
