@@ -52,6 +52,7 @@ class BatchedReward:
         self.pool = ProcessPoolExecutor(max_workers=workers, initializer=_init_worker, initargs=(seed,)) if workers > 1 else None
         self.evals = 0
         self.eval_seconds = 0.0
+        self.order = []   # (key, acc) in evaluation order; the cache itself is unordered
 
     def accuracies(self, hyps: list[tuple]) -> list[float]:
         keys = [RewardEvaluator.key(c, {**DEFAULTS, **h}) for c, h in hyps]
@@ -64,6 +65,7 @@ class BatchedReward:
                 accs = [self.local.cv_accuracy(list(k[0]), dict(k[1])) for k in todo]
             for k, a in zip(todo, accs):
                 self.local.cache[k] = a
+                self.order.append((k, a))
             self.evals += len(todo)
             self.eval_seconds += time.time() - t
         return [self.local.cache[k] for k in keys]
@@ -139,7 +141,7 @@ def main():
         torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
         opt.step()
         accs = (log_r / args.beta + args.base)
-        for c, a in zip(canvas, accs.tolist()):
+        for c, a in zip(canvas, R.accuracies(hyps)):   # cache hits: exact float64 values
             seen[env.canvas_key(c)] = a
         hist.append({"it": it, "loss": round(loss.item(), 4), "log_z": round(log_z.item(), 3),
                      "acc_mean": round(accs.mean().item(), 4), "acc_max": round(accs.max().item(), 4),
@@ -149,8 +151,14 @@ def main():
             print(f"it {it:4d} | loss {h['loss']:8.3f} | logZ {h['log_z']:7.3f} | acc mean {h['acc_mean']:.4f} max {h['acc_max']:.4f} "
                   f"| painted {h['n_mean']:5.2f} | evals {h['evals']:5d} ({R.eval_seconds:5.0f}s) | {h['t']:6.0f}s", flush=True)
 
-    # on-policy samples from the trained generator
+    train_evals, train_seconds = R.evals, time.time() - t0
+    n_train_order = len(R.order)
+    json.dump(hist, open(os.path.join(args.out, "history.json"), "w"))
+    torch.save({"model": model.state_dict(), "log_z": log_z.detach()}, os.path.join(args.out, "model.pt"))
+
+    # on-policy samples from the trained generator (eps = 0)
     model.eval()
+    args.samples = max(args.batch, args.samples)
     with torch.no_grad():
         canvases = []
         for _ in range(math.ceil(args.samples / args.batch)):
@@ -173,6 +181,7 @@ def main():
     results = {
         "seed": args.seed, "iters": args.iters, "batch": args.batch, "beta": args.beta, "base": args.base,
         "unique_evaluations": R.evals, "eval_seconds": round(R.eval_seconds, 1), "total_seconds": round(total, 1),
+        "train_evaluations": train_evals, "train_seconds": round(train_seconds, 1),
         "log_z": round(log_z.item(), 3),
         "train_best_acc": max(seen.values()), "train_unique_hypotheses": len(seen),
         "train_hyps_above_083": sum(a >= 0.83 for a in seen.values()),
@@ -182,10 +191,10 @@ def main():
         "top10_sampled": [{"acc": a, "freq": freq[k], "cells": [f"{c}:{o}" for c, o in h[0]], "hp": h[1]} for k, (h, a) in top],
     }
     json.dump(results, open(os.path.join(args.out, "results.json"), "w"), indent=2)
-    json.dump(hist, open(os.path.join(args.out, "history.json"), "w"))
     json.dump(sample_rows, open(os.path.join(args.out, "samples.json"), "w"))
-    torch.save({"model": model.state_dict(), "log_z": log_z.detach()}, os.path.join(args.out, "model.pt"))
-    cache_rows = [{"cells": list(k[0]), "hp": dict(k[1]), "acc": a} for k, a in sorted(R.local.cache.items(), key=lambda kv: -kv[1])]
+    # every unique evaluation in the order it happened; phase = train (during optimisation) or sample (post-training)
+    cache_rows = [{"i": i, "phase": "train" if i < n_train_order else "sample", "cells": list(k[0]), "hp": dict(k[1]), "acc": a}
+                  for i, (k, a) in enumerate(R.order)]
     json.dump(cache_rows, open(os.path.join(args.out, "evaluations.json"), "w"))
     print(f"\nunique evals {R.evals} ({R.eval_seconds:.0f}s eval, {total:.0f}s total) | train best acc {results['train_best_acc']:.4f} "
           f"| sampled {args.samples}: unique {len(uniq)}, mean acc {results['sample_mean_acc']:.4f}, best {best_acc:.4f} (freq {freq[best_key]})")

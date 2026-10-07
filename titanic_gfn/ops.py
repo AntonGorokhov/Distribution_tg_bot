@@ -75,7 +75,6 @@ class FeatureBuilder:
                 self.stats_[(c, o)] = df[c].value_counts().to_dict()
             if c in NUMERIC:
                 self.stats_[(c, "median")] = float(df[c].median())
-        self.title_age_ = {k: float(v) for k, v in sorted(df.assign(T=self._title(df)).groupby("T")["Age"].median().dropna().items())}
         return self
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -93,7 +92,7 @@ class FeatureBuilder:
             elif o == "missing":
                 out[f"{c}_na"] = df[c].isna().astype(int)
             elif o == "count":
-                new = ~df["PassengerId"].isin(self.fit_ids_)
+                new = ~df["PassengerId"].isin(self.fit_ids_) & df[c].notna()   # a missing value counts as 0 on both sides
                 out[f"{c}_cnt"] = df[c].map(self.stats_[(c, o)]).fillna(0).astype(int) + new.astype(int)
             elif o == "onehot":
                 cats = PORTS if c == "Embarked" else [1, 2, 3]

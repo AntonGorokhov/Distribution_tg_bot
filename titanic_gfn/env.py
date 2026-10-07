@@ -84,5 +84,6 @@ class CanvasEnv:
 
     @staticmethod
     def canvas_key(canvas: torch.Tensor) -> int:
-        flat = (canvas.reshape(-1) > 0.5).long()
-        return int((flat << torch.arange(flat.numel())).sum())
+        """Python int (arbitrary precision): 128 cells do not fit an int64 shift."""
+        idx = (canvas.reshape(-1) > 0.5).nonzero().squeeze(1).tolist()
+        return sum(1 << i for i in idx)

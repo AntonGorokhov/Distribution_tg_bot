@@ -46,11 +46,11 @@ class RewardEvaluator:
         return (tuple(sorted(cells)), tuple(sorted(hp.items())))
 
     def cv_accuracy(self, cells, hp) -> float:
+        hp = {**DEFAULTS, **hp}
         k = self.key(cells, hp)
         if k in self.cache:
             return self.cache[k]
         t = time.time()
-        hp = {**DEFAULTS, **hp}
         accs = []
         for tr, va in self.folds:
             fb = FeatureBuilder(cells).fit(self.X.iloc[tr])
