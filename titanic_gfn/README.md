@@ -65,74 +65,95 @@ python -m titanic_gfn.compare                                       # random + T
 ## Results
 
 Committed run: `python -m titanic_gfn.train --iters 300 --batch 32 --workers 3` (seed 0, β = 60),
-outputs in `titanic_gfn/results/`. 10,082 unique hypotheses were evaluated in
-22.6 min on 4 cores (18.1 min of it in CV fits). Random search and TPE ran on the same evaluator;
-random with the same budget, TPE with 3 000 evaluations (its sequential suggest step makes
-10 000 trials cost about an hour).
+outputs in `titanic_gfn/results/`, controls in `titanic_gfn/results/comparison.json`.
+The training phase made 9,558 unique evaluations in 22 min on 4 cores; the 512
+on-policy samples drawn afterwards cost another 512 evaluations. Every control used the same
+evaluator and folds. Random search draws each valid cell with probability 1/2 and each
+hyper-parameter row from the untrained policy's prior (unset = default, or any value);
+TPE ran 3 000 evaluations (its sequential suggest step makes 10 000 trials cost about an
+hour), so the equal-budget rows are cut from each method's recorded evaluation order.
 
-"search CV" is the single 5-fold score the search optimised; "re-scored" is the honest local
-score: the same pipeline on three fresh 5-fold splits (seeds 1–3), averaged. "≥ 0.83" counts
-distinct evaluated hypotheses above that search-CV threshold. Diversity is the mean pairwise
-Jaccard distance between the cell sets of the top 10 (1 = disjoint).
+"search CV" is the single 5-fold score every search optimised. "re-scored" is the honest local
+score: the same pipeline on three fresh 5-fold splits (seeds 1–3), averaged; "search-best"
+is the pipeline the search itself would hand over, "best" the best of the top 10 after
+re-scoring. "≥ 0.83" counts distinct evaluated hypotheses above that search-CV threshold
+(and the rate per evaluation). Diversity is the mean pairwise Jaccard distance between the
+cell sets of the top 10 (1 = disjoint).
 
-| method | unique evals | best search CV | best re-scored | top-10 re-scored mean | ≥ 0.83 | ≥ 0.84 | top-10 diversity |
-|---|---|---|---|---|---|---|---|
-| GFlowNet (all evaluated during training) | 10,082 | **0.8462** | **0.8361** | 0.8299 | 1,099 | 22 | 0.593 |
-| random search | 10,082 | 0.8417 | 0.8347 | 0.8281 | 454 | 4 | 0.572 |
-| Optuna TPE (3 000-evaluation budget) | 3,000 | 0.8451 | 0.8320 | 0.8319 | 1,218 | 317 | 0.218 |
-| reference: Optuna branch best (LightGBM, hand-written hypotheses, 120 trials) | 120 | 0.8417 | 0.8324 | – | – | – | – |
+| method | unique evals | best search CV | search-best re-scored | best re-scored | top-10 re-scored | ≥ 0.83 | ≥ 0.84 | diversity |
+|---|---|---|---|---|---|---|---|---|
+| GFlowNet, training phase | 9,558 | 0.8429 | 0.8275 | 0.8339 | 0.8288 | 1,040 (10.9 %) | 16 | 0.559 |
+| GFlowNet, first 3 000 | 3,000 | 0.8406 | 0.8279 | 0.8328 | 0.8290 | 255 (8.5 %) | 2 | 0.573 |
+| random search, same budget | 9,558 | 0.8473 | 0.8324 | 0.8384 | 0.8292 | 621 (6.5 %) | 15 | 0.632 |
+| random search, first 3 000 | 3,000 | 0.8451 | 0.8260 | 0.8365 | 0.8290 | 183 (6.1 %) | 2 | 0.611 |
+| Optuna TPE, 3 000 | 3,000 | 0.8451 | 0.8287 | 0.8287 | 0.8287 | 1,618 (53.9 %) | 259 | 0.230 |
+| GFlowNet generator, 512 samples | 512 | 0.8428 | 0.8346 | 0.8347 | 0.8307 | 43 (8.4 %) | 1 | 0.625 |
+| mean-field at the generator marginals, 512 | 512 | 0.8417 | 0.8302 | 0.8354 | 0.8296 | 55 (10.7 %) | 2 | 0.601 |
+| untrained policy, 512 samples | 497 | 0.8372 | 0.8309 | 0.8313 | 0.8270 | 30 (6.0 %) | 0 | 0.523 |
+| hand-written hypotheses + LightGBM (Optuna branch) | 120 | 0.8417¹ | 0.8324 | 0.8373 | 0.8340 | – | – | – |
 
-Best-so-far search CV against the number of unique evaluations (anytime behaviour):
+¹ different protocol (2× stratified 5-fold, seed 42), different feature space and models; only the re-scored columns are comparable.
 
-| evaluations | 500 | 1 000 | 2 000 | 3 000 | 5 000 | 10 082 |
+Best-so-far search CV against the number of unique evaluations:
+
+| evaluations | 500 | 1 000 | 2 000 | 3 000 | 5 000 | 9 558 |
 |---|---|---|---|---|---|---|
-| GFlowNet | 0.8395 | 0.8395 | 0.8406 | 0.8417 | 0.8462 | 0.8462 |
-| random | 0.8372 | 0.8372 | 0.8395 | 0.8395 | 0.8406 | 0.8417 |
-| TPE | 0.8429 | 0.8429 | 0.8451 | 0.8451 | – | – |
+| GFlowNet | 0.8384 | 0.8384 | 0.8406 | 0.8406 | 0.8417 | 0.8429 |
+| random | 0.8395 | 0.8395 | 0.8395 | 0.8451 | 0.8473 | 0.8473 |
+| TPE | 0.8384 | 0.8384 | 0.8451 | 0.8451 | – | – |
 
-The trained generator itself (512 on-policy samples, no further search): mean search CV
-0.8212 against 0.755 for the untrained policy, 77 of 512 samples ≥ 0.83, all 512 distinct;
-re-scored mean of its top 10 0.8299, best 0.8365. Cell marginals in those samples:
-`Name:extract` (title) 0.94, `Sex:raw` 0.74, every other cell 0.54–0.63.
+What the generator learned, untrained → trained (512 samples each): mean search CV
+0.765 → 0.809; share ≥ 0.83 6.0 % → 8.4 %; cells per canvas 13.92 ± 8.8 → 14.89 ± 2.72;
+cell marginals `Sex:raw` 0.43 → 0.73, `Name:extract` 0.45 → 0.65, the other 28 cells 0.42–0.52 → 0.44–0.53.
+Hyper-parameter rows stayed at the prior (model row: hgb 184, unset 173, logreg 155 of 512).
+Independent cells drawn at the generator's own marginals (mean-field) match or beat the
+generator itself on every column of the table.
+
+An earlier run of the same configuration before a bug fix in the count-encoding op (git
+history of `titanic_gfn/results/`) learned `Name:extract` 0.94, `Sex:raw` 0.74, 18.2 ± 3.0
+cells and a sample mean of 0.821: the policy after 300 iterations is not converged, and
+which marginals it settles on depends on details of the reward.
 
 ## Analysis: is a GFlowNet a good engine for this?
 
-**Against random search** at the same budget the GFlowNet is clearly better: 2.4× more
-distinct hypotheses above 0.83, 5× more above 0.84, a higher mean over everything it
-evaluated (0.809 vs 0.791) and the best re-scored candidate of all methods (0.8361). Its
-marginals are an interpretable by-product: title extraction went into 94 % of the
-generator's pipelines and Sex into 74 %, everything else was a coin flip. That is a
-data-driven statement of which hypotheses matter on Titanic, the part a human otherwise
-writes by hand.
+**Against random search** with the same prior and budget the GFlowNet is not better on
+any honest column. It evaluated a denser set of hypotheses above 0.83 (10.9 % of its
+evaluations against 6.5 %), which is what sampling proportional to reward should do, but random
+search found the higher search-CV maximum (0.8473 vs 0.8429), the higher re-scored best
+(0.8384 vs 0.8339) and the same top-10 re-scored mean (0.8292 vs 0.8288). All of
+these differences are inside the CV noise of about 0.015.
 
-**Against TPE** it loses on efficiency and wins on diversity. With 3.4× fewer evaluations
-TPE found 317 hypotheses above 0.84 against 22, because it exploits: its top 10 are
-near-duplicates (Jaccard distance 0.22 vs 0.59) and they re-score to the same plateau
-(0.832 vs 0.830 top-10 mean). Sampling proportional to reward is the right objective for a
-diverse candidate set and the wrong one for extracting a single maximum; TPE is the better
-optimiser per evaluation on one dataset, the GFlowNet the better generator.
+**What the generator actually learned** is three marginals: paint `Sex:raw`, paint
+`Name:extract`, and stop after about 15 cells instead of anywhere between 0 and 30. Nothing
+beyond the marginals is detectable: drawing cells independently at the generator's own
+marginals (mean-field) gives 10.7 % of samples above 0.83 against 8.4 % for the generator and
+the same re-scored numbers. The hyper-parameter rows stayed at the prior, which is what
+β = 60 asks for: the reward ratio between hgb and logreg pipelines is only about 1.5. The
+earlier run with a slightly different reward learned `Name:extract` at 0.94 instead of
+0.65, so the trained policy is also not stable across runs at this budget.
 
-**What nobody did.** The best re-scored pipelines of every method, the hand-written Optuna
-branch with LightGBM included, sit inside 0.83–0.84: the differences are one or two
-validation rows, below the CV noise of about 0.015. The search-CV maxima (0.846, 0.845,
-0.842) are optimistic by about 0.01 from selecting the maximum of thousands of noisy
-evaluations, which the re-scoring column shows. The generator never concentrated: all 512
-samples are distinct because the reward landscape is flat once title and Sex are in, so the
-Boltzmann distribution over the remaining 28 cells is close to uniform.
+**Against TPE** the GFlowNet loses on sample efficiency: TPE reached 0.8451 within 3 000
+evaluations and found 259 hypotheses above 0.84 where the GFlowNet's first 3 000 evaluations
+found 2, because TPE exploits one region (top-10 diversity 0.23 against 0.56). On fresh splits
+TPE's winners re-score to 0.8287 / 0.8287, the same plateau as everyone else.
 
-**Cost.** 10 000 CV fits for an 891-row table is 20 minutes with caching and 3 workers;
-without the cache or with a heavier model in the reward it would not fit a CPU budget. The
-cheap-model reward (small HistGradientBoosting) is itself a hypothesis about what transfers
-to the final model.
+**What nobody beat.** The hand-written hypotheses with LightGBM re-score to 0.8373 (best of 10)
+and 0.8340 (top-10 mean), the highest top-10 mean in the table, with 120 evaluations instead
+of 10 000. Every method's search-CV maximum is 0.005–0.015 above its own re-scored value: the
+maximum over thousands of noisy 5-fold scores is an optimistic estimator, and the honest
+score of all methods lies in 0.83–0.84.
 
-**Where it would pay off.** The amortised generator is the real asset: once trained it emits
-diverse good pipelines instantly, which is what an ensemble or a transfer setting wants.
-Showing that needs more than one dataset: condition the policy on dataset meta-features and
-train across several Kaggle tables; this branch only establishes that the machinery works,
-is deterministic, and is competitive per evaluation with random search on one small problem.
+**Cost.** 10 000 CV fits on an 891-row table took 22 minutes with caching and 3 workers, and the
+reward had to be a small HistGradientBoosting or logistic regression to fit that budget. The
+cheap reward model is itself a hypothesis about what transfers to the final model.
 
-Honest verdict for "universal analytics": a GFlowNet is a sound engine for the hypothesis
-part (compositional feature construction, diverse candidates, interpretable marginals) and a
-poor one for hyper-parameters, where TPE needs a third of the evaluations. On a single small
-dataset neither improves the honest score beyond the plateau a careful human reaches, so the
-choice is about whether the generator will be reused, not about the score.
+**Verdict for "universal analytics".** On one small dataset the GFlowNet is a correct but
+expensive way to sample pipelines from exp(β · accuracy): it learned the two features that
+matter and the right pipeline size, and it produced nothing a product of marginals does not
+reproduce. It does not beat random search per evaluation, TPE is several times more
+sample-efficient at finding maxima, and a human with LightGBM is better per evaluation than
+all three. The machinery (canvas environment, masked actions, uniform backward policy, cached
+reward, determinism) works and can be reused; the case for it has to be made where its
+amortisation pays, i.e. a policy conditioned on dataset meta-features and trained across many
+tables, or a reward that rewards structure the marginals cannot carry (pairwise feature
+operations, stacking). Neither is demonstrated here.
