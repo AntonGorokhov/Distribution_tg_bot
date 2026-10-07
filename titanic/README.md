@@ -50,33 +50,40 @@ python -m pytest tests/test_titanic.py
 
 ## Results
 
-Committed run: `python -m titanic.run --trials 120 --seed 42` (144 s on one core).
+Committed run: `python -m titanic.run --trials 120 --seed 42` (138 s on one core).
 Outputs are in `titanic/results/`.
 
 | | |
 |---|---|
-| best CV accuracy (2x5-fold) | **0.8406** ± 0.0170 (trial #110) |
-| best model | lgbm: n_estimators=275, learning_rate=0.0642, num_leaves=12, min_child_samples=17, subsample=0.7822, colsample_bytree=0.6965, reg_lambda=4.1282 |
-| hypotheses picked | title=True, family=True, deck=False, ticket_group=True, fare_log=True, age_bins=False, age_impute=median |
-| submission sha256 | `2ffe1014f66e2bc8…` (predicted survival rate 0.373) |
-| FLAML comparator (60 iterations) | lgbm, CV accuracy 0.8384 |
+| best CV accuracy (2x5-fold) | **0.8417** (fold std 0.0199, trial #84) |
+| best model | lgbm: n_estimators=75, learning_rate=0.1782, num_leaves=13, min_child_samples=9, subsample=0.9344, colsample_bytree=0.7785, reg_lambda=3.1391 |
+| hypotheses picked | title=True, family=False, deck=False, ticket_group=False, fare_log=True, age_bins=True, age_impute=median |
+| submission sha256 | `0d8408a169ffc97e…` (predicted survival rate 0.347) |
+| FLAML comparator (60 iterations) | lgbm: 0.8384 by FLAML's own CV on pre-fitted features, **0.8277** re-scored under the per-fold protocol used above |
 
 Per model family over the 120 trials:
 
 | model | trials | best CV | mean CV |
 |---|---|---|---|
-| lgbm | 75 | 0.8406 | 0.8326 |
-| logreg | 8 | 0.8316 | 0.8158 |
-| svc | 10 | 0.8316 | 0.7533 |
-| hgb | 15 | 0.8311 | 0.8222 |
-| rf | 12 | 0.8305 | 0.8251 |
+| lgbm | 61 | 0.8417 | 0.8326 |
+| hgb | 19 | 0.8378 | 0.8201 |
+| rf | 12 | 0.8322 | 0.8233 |
+| svc | 18 | 0.8316 | 0.7561 |
+| logreg | 10 | 0.8277 | 0.8183 |
+
+**Selection noise.** The fold std of the best trial is 0.020; 77 of 120 trials lie
+within one fold std of the best and 29 within one naive standard error
+(0.0063). The search identifies a plateau of LightGBM configurations at 0.83–0.84, not a
+unique winner; the reported maximum over 120 trials is optimistic by roughly 0.005–0.01
+relative to re-scoring the same configuration on fresh CV splits. Treat "hypotheses picked"
+as one member of that plateau.
 
 Determinism check (`python -m titanic.verify_determinism --trials 30 --flaml`), output in
 `titanic/results/determinism_check.txt`:
 
 ```
 optuna  seed 42 run A vs B: trials identical=True, submission identical=True; best acc 0.83894 vs 0.83894
-optuna  seed 43 differs from seed 42: True (best acc 0.82943)
+optuna  seed 43 differs from seed 42 (sampled params and values): True (best acc 0.82829)
 flaml   seed 42 run A vs B: config identical=True, submission identical=True; best acc 0.83839 vs 0.83839
 DETERMINISTIC
 ```
