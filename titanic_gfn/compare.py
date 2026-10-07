@@ -1,26 +1,36 @@
 #!/usr/bin/env python3
-"""Controls for the GFlowNet run: random search and Optuna TPE over the same discrete space,
-the same seeded CV evaluator and the same budget of unique evaluations.
+"""Controls for the GFlowNet run, all on the same seeded evaluator.
 
-Outputs best-so-far curves and diversity counts so the three methods can be compared per
-evaluation, not per wall-clock second.
+* random search with the untrained policy's action prior (each valid cell with probability
+  1/2; each hyper-parameter row unset -> default, or one of its values, uniformly over the
+  1 + k options), at the GFlowNet's training-phase budget;
+* Optuna TPE over the same discrete space (30 booleans + 4 categoricals), seeded;
+* mean-field: cells drawn independently at the trained generator's own marginals and
+  hyper-parameters drawn from its empirical distribution (does the generator carry any
+  structure beyond its marginals?).
+
+Scores: "search CV" is the single seeded 5-fold accuracy every search optimised;
+"re-scored" is the same pipeline on three fresh 5-fold splits (seeds 1-3), averaged.
+Equal-budget rows are cut from the recorded evaluation order (no replay needed).
 """
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import time
+from collections import Counter
 
 import numpy as np
 import optuna
+import pandas as pd
 
 from titanic.determinism import reexec_with_fixed_hashseed, seed_everything
 
 if __name__ == "__main__":
     reexec_with_fixed_hashseed()
 
-from .env import CanvasEnv  # noqa: E402
 from .ops import COLUMNS, OPS, VALID  # noqa: E402
 from .reward import DEFAULTS, HPARAMS, RewardEvaluator  # noqa: E402
 from .train import BatchedReward  # noqa: E402
@@ -28,16 +38,22 @@ from .train import BatchedReward  # noqa: E402
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 CELLS = [(c, o) for c in COLUMNS for o in OPS if VALID[c][o]]
 RESCORE_SEEDS = (1, 2, 3)   # fresh CV splits, never used during any search
+TOP = 10
+
+
+def load_json(d: str, name: str):
+    p = os.path.join(d, name)
+    if not os.path.exists(p) and os.path.exists(p + ".gz"):
+        return json.load(gzip.open(p + ".gz", "rt"))
+    return json.load(open(p))
 
 
 def rescore(hyps: list[tuple], X, y) -> list[float]:
-    """Honest score: mean 5-fold accuracy over fresh split seeds for each (cells, hp)."""
     evs = [RewardEvaluator(X, y, seed=s) for s in RESCORE_SEEDS]
     return [float(np.mean([ev.cv_accuracy(list(c), dict(h)) for ev in evs])) for c, h in hyps]
 
 
 def jaccard_diversity(cell_sets: list[frozenset]) -> float:
-    """Mean pairwise Jaccard distance between hypotheses' cell sets (0 = identical, 1 = disjoint)."""
     d, n = [], len(cell_sets)
     for i in range(n):
         for j in range(i + 1, n):
@@ -46,49 +62,43 @@ def jaccard_diversity(cell_sets: list[frozenset]) -> float:
     return round(float(np.mean(d)), 3) if d else 0.0
 
 
-def optuna_branch_reference(X, y) -> dict | None:
-    """The committed best pipeline of the Optuna branch, re-scored on the same fresh splits."""
-    import json as _json
-    from sklearn.model_selection import StratifiedKFold, cross_val_score
-    from titanic.search import build_pipeline
-    path = os.path.join("titanic", "results", "results.json")
-    if not os.path.exists(path):
-        return None
-    r = _json.load(open(path))
-    pipe = build_pipeline(r["best_hypotheses"], r["best_model"], r["best_params"], r["seed"])
-    accs = [cross_val_score(pipe, X, y, cv=StratifiedKFold(5, shuffle=True, random_state=s), scoring="accuracy", n_jobs=1).mean()
-            for s in RESCORE_SEEDS]
-    return {"method": "optuna-branch best (LightGBM, hand-written hypotheses)", "search_cv": r["best_cv_accuracy"],
-            "rescored": round(float(np.mean(accs)), 4)}
-
-
-def summarize(name: str, evaluated: list[tuple[tuple, float]], seconds: float, X=None, y=None) -> dict:
+def summarize(name: str, evaluated: list[tuple[tuple, float]], seconds, X, y, budget_note: str = "") -> dict:
     """evaluated: list of (key, acc) in evaluation order, unique keys."""
     accs = np.array([a for _, a in evaluated])
     best_so_far = np.maximum.accumulate(accs).tolist()
-    top = sorted(evaluated, key=lambda kv: -kv[1])[:10]
-    resc = rescore([(k[0], k[1]) for k, _ in top], X, y) if X is not None else [None] * len(top)
+    top = sorted(evaluated, key=lambda kv: -kv[1])[:TOP]
+    resc = rescore([(k[0], k[1]) for k, _ in top], X, y)
     return {
-        "rescored_best": None if X is None else round(max(resc), 4),
-        "rescored_top10_mean": None if X is None else round(float(np.mean(resc)), 4),
-        "rescored_of_search_best": None if X is None else round(resc[0], 4),
-        "top10_diversity": jaccard_diversity([frozenset(k[0]) for k, _ in top]),
-        "method": name, "unique_evaluations": len(evaluated), "seconds": round(seconds, 1),
+        "method": name, "budget_note": budget_note, "unique_evaluations": len(evaluated),
+        "seconds": None if seconds is None else round(seconds, 1),
         "best_acc": float(accs.max()), "mean_acc": round(float(accs.mean()), 4),
         "n_above_083": int((accs >= 0.83).sum()), "n_above_084": int((accs >= 0.84).sum()),
+        "frac_above_083": round(float((accs >= 0.83).mean()), 4),
         "top20_mean": round(float(np.sort(accs)[-20:].mean()), 4),
+        "rescored_of_search_best": round(resc[0], 4),
+        "rescored_best": round(max(resc), 4), "rescored_top10_mean": round(float(np.mean(resc)), 4),
+        "top10_diversity": jaccard_diversity([frozenset(k[0]) for k, _ in top]),
         "best_so_far": best_so_far[:: max(1, len(best_so_far) // 400)] + [best_so_far[-1]],
-        "top10": [{"acc": a, "rescored": None if r is None else round(r, 4), "cells": [f"{c}:{o}" for c, o in k[0]], "hp": dict(k[1])} for (k, a), r in zip(top, resc)],
+        "top10": [{"acc": a, "rescored": round(r, 4), "cells": [f"{c}:{o}" for c, o in k[0]], "hp": dict(k[1])} for (k, a), r in zip(top, resc)],
     }
 
 
-def random_search(R: BatchedReward, budget: int, rng: np.random.Generator) -> list:
+def draw_hp_policy_prior(rng) -> dict:
+    """Untrained policy's prior on a hyper-parameter row: unset (default) or any value, uniformly."""
+    hp = {}
+    for n, ch in HPARAMS:
+        j = rng.integers(len(ch) + 1)
+        if j < len(ch):
+            hp[n] = ch[j]
+    return hp
+
+
+def batch_evaluate(R: BatchedReward, proposals, budget: int) -> list:
     evaluated, seen = [], set()
     while len(evaluated) < budget:
         batch = []
         for _ in range(96):
-            cells = [c for c in CELLS if rng.random() < 0.5]
-            hp = {n: ch[rng.integers(len(ch))] for n, ch in HPARAMS}
+            cells, hp = proposals()
             k = RewardEvaluator.key(cells, {**DEFAULTS, **hp})
             if k not in seen:
                 seen.add(k); batch.append((cells, hp, k))
@@ -99,7 +109,18 @@ def random_search(R: BatchedReward, budget: int, rng: np.random.Generator) -> li
     return evaluated
 
 
-def tpe_search(R: BatchedReward, budget: int, seed: int, max_trials: int) -> list:
+def random_search(R, budget, rng):
+    return batch_evaluate(R, lambda: ([c for c in CELLS if rng.random() < 0.5], draw_hp_policy_prior(rng)), budget)
+
+
+def mean_field(R, budget, rng, samples: list) -> list:
+    n = len(samples)
+    marg = {c: sum(c in s["cells"] for s in samples) / n for c in (f"{a}:{b}" for a, b in CELLS)}
+    hps = [s["hp"] for s in samples]
+    return batch_evaluate(R, lambda: ([c for c in CELLS if rng.random() < marg[f"{c[0]}:{c[1]}"]], dict(hps[rng.integers(n)])), budget)
+
+
+def tpe_search(R, budget, seed, max_trials):
     evaluated, seen = [], set()
     sampler = optuna.samplers.TPESampler(seed=seed, multivariate=True, n_startup_trials=30)
     study = optuna.create_study(direction="maximize", sampler=sampler)
@@ -119,71 +140,100 @@ def tpe_search(R: BatchedReward, budget: int, seed: int, max_trials: int) -> lis
     return evaluated
 
 
+def optuna_branch_reference(X, y) -> dict | None:
+    """Top-10 trials of the Optuna branch (LightGBM etc., hand-written hypotheses), re-scored on
+    the same fresh splits. Its search CV is a different protocol (2x5-fold, seed 42)."""
+    from sklearn.model_selection import StratifiedKFold, cross_val_score
+    from titanic.search import build_pipeline, split_params
+    path = os.path.join("titanic", "results", "trials.csv")
+    if not os.path.exists(path):
+        return None
+    df = pd.read_csv(path).sort_values("value", ascending=False).head(TOP)
+    resc = []
+    for _, row in df.iterrows():
+        params = {}
+        for k, v in row.items():
+            if k in ("number", "value", "cv_std", "n_features") or pd.isna(v):
+                continue
+            if k.startswith("h_") and k != "h_age_impute":
+                v = str(v) == "True"
+            elif isinstance(v, float) and v.is_integer() and not k.endswith(("learning_rate", "subsample", "colsample", "reg_lambda", "l2", "_C", "_gamma")):
+                v = int(v)          # CSV turned ints into floats where other models left NaN
+            elif k == "rf_max_features" and v not in ("sqrt", "None"):
+                v = float(v)
+            params[k] = None if v == "None" else v
+        hyp, model, mp = split_params(params)
+        pipe = build_pipeline(hyp, model, mp, 42)
+        resc.append(float(np.mean([cross_val_score(pipe, X, y, cv=StratifiedKFold(5, shuffle=True, random_state=s), scoring="accuracy", n_jobs=1).mean()
+                                   for s in RESCORE_SEEDS])))
+    return {"method": "Optuna branch (hand-written hypotheses, LightGBM et al.)", "search_protocol": "2x stratified 5-fold, seed 42",
+            "unique_evaluations": 120, "best_acc": float(df["value"].max()),
+            "rescored_of_search_best": round(resc[0], 4), "rescored_best": round(max(resc), 4), "rescored_top10_mean": round(float(np.mean(resc)), 4)}
+
+
+def gfn_rows(gfn_out: str, X, y) -> dict:
+    ev = load_json(gfn_out, "evaluations.json")
+    train = [((tuple(tuple(c) for c in r["cells"]), tuple(sorted(r["hp"].items()))), r["acc"]) for r in ev if r["phase"] == "train"]
+    res = load_json(gfn_out, "results.json")
+    out = {"gflownet": summarize("gflownet (training phase)", train, res.get("train_seconds"), X, y, "all evaluations made during training")}
+    if len(train) > 3000:
+        out["gflownet@3000"] = summarize("gflownet (first 3 000 evaluations)", train[:3000], None, X, y, "training order")
+    samples = load_json(gfn_out, "samples.json")
+    sample_pairs = [(( tuple(tuple(c.split(":")) for c in s["cells"]), tuple(sorted(s["hp"].items()))), s["acc"]) for s in samples]
+    out["gflownet-samples"] = summarize("gflownet generator (on-policy samples)", sample_pairs, None, X, y, f"{len(samples)} samples, eps = 0")
+    n = len(samples)
+    marg = {f"{a}:{b}": round(sum(f"{a}:{b}" in s["cells"] for s in samples) / n, 3) for a, b in CELLS}
+    out["gflownet-samples"]["cell_marginals"] = marg
+    out["gflownet-samples"]["hp_marginals"] = {name: dict(Counter(str(s["hp"].get(name, "unset")) for s in samples)) for name, _ in HPARAMS}
+    out["gflownet-samples"]["cells_per_canvas"] = [round(float(np.mean([len(s["cells"]) for s in samples])), 2), round(float(np.std([len(s["cells"]) for s in samples])), 2)]
+    return out
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--budget", type=int, default=None, help="unique evaluations; default = the GFlowNet run's")
     p.add_argument("--gfn-out", default="out/titanic_gfn")
+    p.add_argument("--budget", type=int, default=None, help="unique evaluations for random; default = GFlowNet training-phase count")
+    p.add_argument("--tpe-budget", type=int, default=3000)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--workers", type=int, default=3)
-    p.add_argument("--methods", default="random,tpe")
+    p.add_argument("--methods", default="random,meanfield,tpe,reference")
     p.add_argument("--out", default="out/titanic_gfn")
     args = p.parse_args()
     seed_everything(args.seed)
     os.makedirs(args.out, exist_ok=True)
+    methods = set(args.methods.split(","))
 
-    gfn = json.load(open(os.path.join(args.gfn_out, "results.json")))
-    budget = args.budget or gfn["unique_evaluations"]
-    R = BatchedReward(args.seed, args.workers, beta=gfn["beta"], base=gfn["base"])
-    X, y = R.local.X, R.local.y
-    import pandas as pd
-    y = pd.Series(y)
-    out = {}
-    if "random" in args.methods:
-        t = time.time(); ev = random_search(R, budget, np.random.default_rng(args.seed))
-        out["random"] = summarize("random", ev, time.time() - t, X, y)
+    res = load_json(args.gfn_out, "results.json")
+    budget = args.budget or res["train_evaluations"]
+    R = BatchedReward(args.seed, args.workers, beta=res["beta"], base=res["base"])
+    X, y = R.local.X, pd.Series(R.local.y)
+    out = gfn_rows(args.gfn_out, X, y)
+    rng = np.random.default_rng(args.seed)
+    if "random" in methods:
+        t = time.time(); ev = random_search(R, budget, rng)
+        out["random"] = summarize("random search (untrained-policy prior)", ev, time.time() - t, X, y, "same budget as GFlowNet training")
+        if budget > 3000:
+            out["random@3000"] = summarize("random search (first 3 000)", ev[:3000], None, X, y, "evaluation order")
         print(f"random : best {out['random']['best_acc']:.4f} | >=0.83: {out['random']['n_above_083']} | {out['random']['seconds']:.0f}s", flush=True)
-    if "tpe" in args.methods:
-        t = time.time(); ev = tpe_search(R, budget, args.seed, max_trials=budget * 3)
-        out["tpe"] = summarize("tpe", ev, time.time() - t, X, y)
+    if "meanfield" in methods:
+        samples = load_json(args.gfn_out, "samples.json")
+        t = time.time(); ev = mean_field(R, len(samples), rng, samples)
+        out["meanfield"] = summarize("mean-field (independent cells at the generator's marginals)", ev, time.time() - t, X, y, f"{len(samples)} draws")
+        print(f"meanfld: best {out['meanfield']['best_acc']:.4f} | >=0.83: {out['meanfield']['n_above_083']} | mean {out['meanfield']['mean_acc']}", flush=True)
+    if "tpe" in methods:
+        t = time.time(); ev = tpe_search(R, args.tpe_budget, args.seed, max_trials=args.tpe_budget * 3)
+        out["tpe"] = summarize("Optuna TPE", ev, time.time() - t, X, y, f"{args.tpe_budget} evaluations")
         print(f"tpe    : best {out['tpe']['best_acc']:.4f} | >=0.83: {out['tpe']['n_above_083']} | {out['tpe']['seconds']:.0f}s", flush=True)
     R.close()
-    # GFlowNet summary from its own evaluation cache (training order is lost; use history for the curve)
-    ev_rows = json.load(open(os.path.join(args.gfn_out, "evaluations.json")))
-    hist = json.load(open(os.path.join(args.gfn_out, "history.json")))
-    accs = np.array([r["acc"] for r in ev_rows])
-    gtop = ev_rows[:10]   # evaluations.json is sorted by accuracy, descending
-    g_resc = rescore([([tuple(c) for c in r["cells"]], r["hp"]) for r in gtop], X, y)
-    # the generator's own output: top-10 by accuracy among the on-policy samples
-    samples = json.load(open(os.path.join(args.gfn_out, "samples.json")))
-    stop = samples[:10]
-    s_resc = rescore([([tuple(c.split(":")) for c in r["cells"]], r["hp"]) for r in stop], X, y)
-    out["gflownet"] = {
-        "method": "gflownet", "unique_evaluations": len(ev_rows), "seconds": gfn["total_seconds"],
-        "rescored_best": round(max(g_resc), 4), "rescored_top10_mean": round(float(np.mean(g_resc)), 4),
-        "rescored_of_search_best": round(g_resc[0], 4),
-        "top10_diversity": jaccard_diversity([frozenset(tuple(c) for c in r["cells"]) for r in gtop]),
-        "sampled_top10_rescored_mean": round(float(np.mean(s_resc)), 4), "sampled_top10_rescored_best": round(max(s_resc), 4),
-        "sampled_top10_diversity": jaccard_diversity([frozenset(tuple(c.split(":")) for c in r["cells"]) for r in stop]),
-        "top10": [{"acc": r["acc"], "rescored": round(x, 4), "cells": [f"{c}:{o}" for c, o in r["cells"]], "hp": r["hp"]} for r, x in zip(gtop, g_resc)],
-        "best_acc": float(accs.max()), "mean_acc": round(float(accs.mean()), 4),
-        "n_above_083": int((accs >= 0.83).sum()), "n_above_084": int((accs >= 0.84).sum()),
-        "top20_mean": round(float(np.sort(accs)[-20:].mean()), 4),
-        "best_so_far_by_iter": [(h["evals"], h["acc_max"]) for h in hist],
-        "sample_mean_acc": gfn["sample_mean_acc"], "sample_hyps_above_083": gfn["sample_hyps_above_083"],
-    }
-    out["gflownet"]["best_so_far_by_iter"] = np.maximum.accumulate([a for _, a in out["gflownet"]["best_so_far_by_iter"]]).tolist()
-    ref = optuna_branch_reference(X, y)
-    if ref:
-        out["reference_optuna_branch"] = ref
+    if "reference" in methods:
+        ref = optuna_branch_reference(X, y)
+        if ref:
+            out["reference"] = ref
     json.dump(out, open(os.path.join(args.out, "comparison.json"), "w"), indent=1)
-    print("\nmethod    uniq  best(search) rescored(best/top10)  diversity  >=0.83 >=0.84  sec")
-    for m in ("random", "tpe", "gflownet"):
-        if m not in out:
-            continue
-        s = out[m]
-        print(f"{m:9s} {s['unique_evaluations']:5d}  {s['best_acc']:.4f}       {s['rescored_best']:.4f} / {s['rescored_top10_mean']:.4f}    {s['top10_diversity']:.3f}   {s['n_above_083']:6d} {s['n_above_084']:6d} {s['seconds']:5.0f}")
-    if ref:
-        print(f"reference: {ref['method']}: search CV {ref['search_cv']:.4f}, rescored {ref['rescored']:.4f}")
+    print("\nmethod                               uniq  best(search) search-best re-scored  best re-scored  top10 re-scored  diversity  >=0.83 >=0.84")
+    for k, s in out.items():
+        print(f"{s['method'][:36]:36s} {s['unique_evaluations']:5d}  {s['best_acc']:.4f}       {s['rescored_of_search_best']:.4f}              "
+              f"{s['rescored_best']:.4f}          {s['rescored_top10_mean']:.4f}         {s.get('top10_diversity', float('nan')):.3f}   {s.get('n_above_083', 0):6d} {s.get('n_above_084', 0):6d}")
 
 
 if __name__ == "__main__":
