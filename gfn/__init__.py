@@ -1,1 +1,1 @@
-"""GFlowNet on a synthetic binary-grid environment with a U-Net policy (CPU-only)."""
+"""Anal yst: GFlowNet on a synthetic binary-grid environment with a U-Net policy (CPU-only)."""

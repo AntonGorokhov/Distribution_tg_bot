@@ -1,0 +1,12 @@
+[project]
+name = "anal-yst"
+version = "0.1.0"
+description = "Anal yst: GFlowNet on synthetic grid data with a U-Net policy, CPU only"
+requires-python = ">=3.10"
+dependencies = ["torch>=2.0", "numpy", "matplotlib"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools]
+packages = ["gfn"]

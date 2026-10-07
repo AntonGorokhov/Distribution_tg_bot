@@ -1,4 +1,6 @@
-# GFlowNet on synthetic data with a U-Net policy (CPU)
+# Anal yst
+
+**Anal yst** — GFlowNet on synthetic data with a U-Net policy, CPU only.
 
 Minimal, from-scratch GFlowNet (trajectory balance) that learns to sample binary
 `H x W` images proportionally to a synthetic multimodal reward. The forward policy
