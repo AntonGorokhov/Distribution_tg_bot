@@ -13,7 +13,8 @@ import warnings
 
 from .determinism import environment_info, reexec_with_fixed_hashseed, seed_everything, sha256_file
 
-reexec_with_fixed_hashseed()
+if __name__ == "__main__":
+    reexec_with_fixed_hashseed()
 warnings.filterwarnings("ignore")
 
 from . import data  # noqa: E402
@@ -41,6 +42,16 @@ def main():
                estimator_list=["lgbm", "rf", "extra_tree", "lrl1", "lrl2"], eval_method="cv", n_splits=5,
                split_type="stratified", seed=args.seed, n_jobs=1, verbose=0, log_file_name="")
     pred = automl.predict(Xt)
+    # FLAML's own CV saw features fitted on all 891 rows; re-score its winner under the per-fold protocol
+    from sklearn.model_selection import cross_val_score
+    from sklearn.pipeline import Pipeline
+    from .search import make_cv
+    try:
+        est = automl.best_model_for_estimator(automl.best_estimator)
+        refit = Pipeline([("features", TitanicFeatures(**feats.get_params())), ("model", est)])
+        per_fold_acc = float(cross_val_score(refit, X, y, cv=make_cv(args.seed), scoring="accuracy", n_jobs=1).mean())
+    except Exception as e:  # pragma: no cover - comparator only
+        per_fold_acc, est = None, repr(e)
     import pandas as pd
     sub = os.path.join(args.out, "submission.csv")
     pd.DataFrame({"PassengerId": X_test["PassengerId"], "Survived": pred.astype(int)}).to_csv(sub, index=False)
@@ -48,10 +59,11 @@ def main():
         "seed": args.seed, "max_iter": args.max_iter,
         "best_estimator": automl.best_estimator, "best_config": automl.best_config,
         "best_cv_accuracy": round(1 - automl.best_loss, 5),
+        "best_cv_accuracy_per_fold_protocol": None if per_fold_acc is None else round(per_fold_acc, 5),
         "submission_sha256": sha256_file(sub), "seconds": round(time.time() - t0, 1), "env": environment_info(),
     }
     json.dump(results, open(os.path.join(args.out, "results.json"), "w"), indent=2, default=str)
-    print(f"FLAML best {automl.best_estimator} CV acc {1 - automl.best_loss:.4f} | sub sha256 {results['submission_sha256'][:16]}… | {results['seconds']}s")
+    print(f"FLAML best {automl.best_estimator} CV acc {1 - automl.best_loss:.4f} (per-fold protocol {per_fold_acc}) | sub sha256 {results['submission_sha256'][:16]}… | {results['seconds']}s")
 
 
 if __name__ == "__main__":

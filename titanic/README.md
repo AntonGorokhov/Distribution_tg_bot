@@ -13,7 +13,7 @@ Feature hypotheses (`titanic/features.py`, each a switch the sampler can flip):
 | `title` | Mr / Mrs / Miss / Master / Rare parsed from `Name` |
 | `family` | `FamilySize = SibSp + Parch + 1`, `IsAlone` |
 | `deck` | first letter of `Cabin`, `U` for unknown |
-| `ticket_group` | how many passengers share the ticket |
+| `ticket_group` | passengers on the same ticket, counted among the training rows plus the row itself (same definition for fit rows and new rows) |
 | `fare_log` | `log1p(Fare)` |
 | `age_bins` | ordinal age bucket next to raw age |
 | `age_impute` | missing `Age` by global median or by (Title, Pclass) median |
@@ -34,13 +34,14 @@ all imputation statistics fitted inside each training fold.
 | hash ordering | the entry point re-execs itself with `PYTHONHASHSEED=0`; encodings use fixed category lists anyway |
 | data | committed CSVs verified against the Kaggle md5 before every run |
 
-Everything is written to `out/titanic/`: `study.db` (Optuna SQLite, resumable),
+Everything is written to `out/titanic/`: `study.db` (Optuna SQLite, for inspection; every run starts fresh),
 `trials.csv`, `submission.csv`, `results.json` (best config, its fingerprint, sha256 of
 the submission and of the trial table, library versions, git commit).
 
 ## Run
 
 ```bash
+pip install -e ".[titanic]"                           # or: pip install -r requirements.txt
 python -m titanic.run --trials 120 --seed 42          # ~3 min on 1 CPU core
 python -m titanic.verify_determinism --trials 30 --flaml   # A == B, A != other seed
 python -m titanic.flaml_baseline --max-iter 60        # AutoML comparator (FLAML, fixed iterations)

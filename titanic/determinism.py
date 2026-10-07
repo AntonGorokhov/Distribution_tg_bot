@@ -7,20 +7,27 @@ import os
 import random
 import subprocess
 import sys
+import warnings
 
 import numpy as np
 
 HASH_SEED = "0"
+THREAD_VARS = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")
 
 
 def reexec_with_fixed_hashseed() -> None:
-    """str/set iteration order depends on PYTHONHASHSEED, which can only be set before the
-    interpreter starts. Re-exec ourselves once with a pinned value."""
-    if os.environ.get("PYTHONHASHSEED") != HASH_SEED:
-        env = {**os.environ, "PYTHONHASHSEED": HASH_SEED}
-        spec = getattr(sys.modules.get("__main__"), "__spec__", None)
-        argv = [sys.executable, "-m", spec.name, *sys.argv[1:]] if spec else [sys.executable, *sys.argv]
-        os.execve(sys.executable, argv, env)
+    """str/set iteration order depends on PYTHONHASHSEED, and BLAS thread counts on OMP_* vars,
+    both of which must be set before the interpreter / numpy start. Entry points call this
+    under `if __name__ == "__main__"` and get re-executed once with the pinned values."""
+    pinned = sys.flags.hash_randomization == 0 and all(os.environ.get(v) == "1" for v in THREAD_VARS)
+    if pinned:
+        return
+    argv = getattr(sys, "orig_argv", None)
+    if not argv:
+        warnings.warn("cannot re-exec with pinned PYTHONHASHSEED/thread vars; set them in the environment", RuntimeWarning)
+        return
+    env = {**os.environ, "PYTHONHASHSEED": HASH_SEED, **{v: "1" for v in THREAD_VARS}}
+    os.execve(sys.executable, list(argv), env)
 
 
 def seed_everything(seed: int) -> None:
@@ -56,6 +63,8 @@ def environment_info() -> dict:
         "numpy": np.__version__, "pandas": pandas.__version__, "sklearn": sklearn.__version__,
         "optuna": optuna.__version__, "lightgbm": lightgbm.__version__,
         "PYTHONHASHSEED": os.environ.get("PYTHONHASHSEED"),
+        "hash_randomization": sys.flags.hash_randomization,
         "OMP_NUM_THREADS": os.environ.get("OMP_NUM_THREADS"),
         "git_commit": commit,
+        "git_dirty": bool(subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True, check=False).stdout.strip()),
     }

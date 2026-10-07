@@ -34,10 +34,10 @@ def main():
     c = run("titanic.run", f"{args.out}/C", args.seed + 1, ["--trials", str(args.trials)])
     same_trials = a["trials_sha256"] == b["trials_sha256"]
     same_sub = a["submission_sha256"] == b["submission_sha256"]
-    diff_seed = a["trials_sha256"] != c["trials_sha256"]
+    diff_seed = a["trials_sha256"] != c["trials_sha256"] and a["params_sha256"] != c["params_sha256"]
     print(f"optuna  seed {args.seed} run A vs B: trials identical={same_trials}, submission identical={same_sub}; "
           f"best acc {a['best_cv_accuracy']} vs {b['best_cv_accuracy']}")
-    print(f"optuna  seed {args.seed + 1} differs from seed {args.seed}: {diff_seed} (best acc {c['best_cv_accuracy']})")
+    print(f"optuna  seed {args.seed + 1} differs from seed {args.seed} (sampled params and values): {diff_seed} (best acc {c['best_cv_accuracy']})")
     ok &= same_trials and same_sub and diff_seed
 
     if args.flaml:
