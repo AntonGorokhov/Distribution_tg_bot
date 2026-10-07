@@ -36,10 +36,10 @@ section{display:flex;flex-direction:column;gap:20px}
 .sec-head{display:flex;flex-direction:column;gap:8px}
 .lead{font-size:16px}
 code,.eq{font-family:var(--font-mono);font-size:.92em}
-.eq{display:block;padding:10px 14px;border-left:2px solid var(--line-strong);color:var(--fg);overflow-x:auto;white-space:nowrap;max-width:100%}
+.eq{display:block;padding:10px 14px;border-left:2px solid var(--line-strong);color:var(--fg);overflow-wrap:anywhere;max-width:100%}
 
 /* stat tiles */
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}
 .tile{display:flex;flex-direction:column;gap:2px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:6px;min-width:0}
 .tile .l{font-size:12px;color:var(--muted)}
 .tile .v{font-family:var(--font-mono);font-size:24px;overflow-wrap:anywhere;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
@@ -66,7 +66,7 @@ code,.eq{font-family:var(--font-mono);font-size:.92em}
 .env-row{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
 @media (max-width:760px){.env-row{grid-template-columns:1fr}}
 .dag{width:100%;max-width:520px;height:auto;display:block}
-.dag text{font-family:var(--font-mono);font-size:10px;fill:var(--muted)}
+.dag text{font-family:var(--font-mono);font-size:14px;fill:var(--muted)}
 
 /* player */
 .player{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:18px}
@@ -94,7 +94,7 @@ button.icon{min-width:38px;font-family:var(--font-mono)}
 .stopbar.chosen .track{outline:3px solid var(--pick)}
 .stopbar .pv{font-family:var(--font-mono)}
 .heat .cell{display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;color:var(--fg)}
-.heat .cell span{opacity:.9;mix-blend-mode:difference;color:#fff}
+.heat .cell span{color:var(--fg);paint-order:stroke fill;-webkit-text-stroke:2px var(--surface)}
 .heat .cell.masked span{display:none}
 .stages{display:flex;gap:6px;align-items:flex-start;overflow-x:auto;padding-bottom:6px}
 .stage{display:flex;flex-direction:column;gap:6px;align-items:center;flex:1 1 0;min-width:88px;max-width:150px;padding:8px 6px;border-radius:6px;border:1px solid transparent;transition:border-color .25s,background .25s;font-size:11px;color:var(--muted);text-align:center}
@@ -109,7 +109,8 @@ button.icon{min-width:38px;font-family:var(--font-mono)}
 .ledger{display:flex;flex-direction:column;gap:6px;font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums}
 .ledger table{border-collapse:collapse;width:100%}
 .ledger th,.ledger td{text-align:right;padding:3px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
-.ledger th{font-weight:500;color:var(--muted)}
+.ledger th{font-weight:500;color:var(--muted);position:sticky;top:0;background:var(--surface)}
+@media (max-width:520px){.ledger{font-size:11px}.ledger th,.ledger td{padding:3px 4px}}
 .ledger td:first-child,.ledger th:first-child{text-align:left}
 .ledger tr.cur td{background:color-mix(in oklab,var(--pick) 12%,transparent)}
 .ledger .wrap{overflow:auto;max-height:230px}
@@ -200,7 +201,7 @@ table.metrics th{font-weight:500;color:var(--muted)}
     <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
       <h3>Почему это DAG, а не дерево</h3>
       <p class="hint">Одна и та же картинка достижима в разном порядке закраски. Для холста 2×2 показаны все 16 состояний по числу закрашенных пикселей; выделены два пути в одно состояние. Обратная политика P<sub>B</sub> равномерна по закрашенным пикселям, поэтому Σ log P<sub>B</sub> = −log n! и считается в явном виде.</p>
-      <svg class="dag" id="dag" viewBox="0 0 520 300" role="img" aria-label="Граф состояний холста 2 на 2"></svg>
+      <svg class="dag" id="dag" viewBox="0 0 520 330" role="img" aria-label="Граф состояний холста 2 на 2"></svg>
     </div>
   </div>
 </section>
@@ -234,7 +235,7 @@ table.metrics th{font-weight:500;color:var(--muted)}
           <div class="grid c4 heat" id="policy"></div>
           <div class="stopbar" id="stopbar"><div class="track"><div class="fill"></div></div><span>STOP</span><span class="pv"></span></div>
         </div>
-        <div class="hint">Точка: пиксель уже закрашен, действие запрещено. Зелёная рамка: выбранное действие.</div>
+        <div class="hint">Числа: P<sub>F</sub> в процентах. Точка: пиксель уже закрашен, действие запрещено. Зелёная рамка: выбранное действие.</div>
       </div>
       <div class="panel unet">
         <h3><span>Внутри U-Net</span><span class="mono">средний |активация| по каналам</span></h3>
@@ -285,8 +286,8 @@ table.metrics th{font-weight:500;color:var(--muted)}
   </div>
   <div class="res">
     <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
-      <div class="legend"><span style="--sw:var(--pick)">≤ 1 px от прототипа</span><span style="--sw:var(--model)">остальные</span></div>
-      <div class="scatter"><canvas id="scatter"></canvas></div>
+      <div class="legend"><span style="--sw:var(--pick)">≤ 1 пикс. от прототипа</span><span style="--sw:var(--model)">остальные</span></div>
+      <div class="scatter"><canvas id="scatter" role="img" aria-label="Точечный график: целевая вероятность против вероятности модели, обе оси логарифмические"></canvas></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
       <table class="metrics" id="metrics"></table>
@@ -339,7 +340,7 @@ function heat(g, vals, token, max, labels) {
     if (labels) cells[i].innerHTML = `<span>${labels[i]}</span>`;
   }
 }
-const miniGrid = (id, cls = '') => { const g = mkGrid(4, cls); paint(g, bits(id)); return g; };
+const miniGrid = (id, cls = '') => { const g = mkGrid(4, cls); paint(g, bits(id)); if (cls.includes('near')) g.title = '≤ 1 пикс. от прототипа'; return g; };
 
 /* ---------- tooltip ---------- */
 const tip = $('#tip');
@@ -352,6 +353,7 @@ function showTip(ev, html, id) {
   let x = ev.clientX + 14, y = ev.clientY + 14;
   if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 14;
   if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 14;
+  x = Math.max(8, Math.min(x, innerWidth - r.width - 8)); y = Math.max(8, Math.min(y, innerHeight - r.height - 8));
   tip.style.left = x + 'px'; tip.style.top = y + 'px';
 }
 const hideTip = () => { tip.hidden = true; };
@@ -360,13 +362,13 @@ const hideTip = () => { tip.hidden = true; };
 (function tiles() {
   const f = RUN.final, m = RUN.meta;
   const T = $('#tiles');
-  const mk = (l, v, s) => { const t = el('div', 'tile'); const vv = el('div', 'v', v); if (v.length > 7) vv.style.fontSize = '19px'; t.append(el('div', 'l', l), vv, el('div', 's', s)); T.appendChild(t); };
+  const mk = (l, v, s) => { const t = el('div', 'tile'); const vv = el('div', 'v', v); if (v.length > 7) vv.style.fontSize = '18px'; t.append(el('div', 'l', l), vv, el('div', 's', s)); T.appendChild(t); };
   mk('TV-расстояние до R/Z', fmt(f.tv), 'точно, 65 536 состояний');
   mk('Корреляция P_model и R/Z', fmt(f.corr, 4), 'по всем состояниям');
   mk('log Z: модель / истина', `${fmt(f.log_z, 2)} / ${fmt(RUN.true_log_z, 2)}`, 'обучаемый скаляр');
-  mk('Масса около прототипов', `${fmt(f.mass1px_exact, 3)} / ${fmt(RUN.target.mass1px, 3)}`, '≤ 1 px, модель / цель');
+  mk('Масса около прототипов', `${fmt(f.mass1px_exact, 3)} / ${fmt(RUN.target.mass1px, 3)}`, '≤ 1 пикс., модель / цель');
   mk('Обучение', `${Math.round(m.train_seconds)} с`, `${m.iters} итераций × ${m.batch}, ${m.threads} потока CPU`);
-  mk('Параметров U-Net', (m.params / 1000).toFixed(1) + 'k', `base = ${m.base} каналов`);
+  mk('Параметров U-Net', (m.params / 1000).toFixed(1) + 'k', `базовая ширина ${m.base} каналов`);
 })();
 
 /* ---------- env ---------- */
@@ -400,13 +402,13 @@ const hideTip = () => { tip.hidden = true; };
     add('rect', { x: -3, y: -3, width: 38, height: 38, rx: 4, fill: 'var(--surface)', stroke: s === hl ? 'var(--pick)' : 'var(--line-strong)', 'stroke-width': s === hl ? 2.5 : 1 }, g);
     for (let j = 0; j < 4; j++) add('rect', { x: (j & 1) * 17, y: (j >> 1) * 17, width: 15, height: 15, rx: 2, fill: (s >> j) & 1 ? 'var(--ink)' : 'var(--line)' }, g);
   }
-  [0, 1, 2, 3, 4].forEach(l => { const t = add('text', { x: 40 + l * 110, y: 292, 'text-anchor': 'middle' }); t.textContent = `n = ${l}`; });
+  [0, 1, 2, 3, 4].forEach(l => { const t = add('text', { x: 40 + l * 110, y: 322, 'text-anchor': 'middle' }); t.textContent = `n = ${l}`; });
 })();
 
 /* ---------- trajectory player ---------- */
 const PL = (() => {
   const cks = Object.keys(RUN.trajectories).map(Number).sort((a, b) => a - b);
-  const st = { ck: String(cks[cks.length - 1]), ti: 0, frame: 0, playing: !REDUCED, speed: 1, token: 0 };
+  const st = { ck: String(cks[cks.length - 1]), ti: 0, frame: 0, playing: false, speed: 1, token: 0, touched: false };
   const canvasG = mkGrid(4, 'big'); $('#canvas').replaceWith(canvasG); canvasG.id = 'canvas';
   const polG = mkGrid(4, 'heat'); $('#policy').replaceWith(polG); polG.id = 'policy';
   const stopbar = $('#stopbar');
@@ -431,13 +433,21 @@ const PL = (() => {
   const traj = () => RUN.trajectories[st.ck][st.ti];
   const frames = () => traj().steps.length + 1;
 
-  function segs() {
+  function buildSegs() {
     const C = $('#ck-seg'); C.querySelectorAll('button').forEach(b => b.remove());
-    cks.forEach(c => { const b = el('button', String(c) === st.ck ? 'on' : '', String(c)); b.onclick = () => { st.ck = String(c); st.ti = 0; segs(); go(0, true); }; C.appendChild(b); });
-    const T = $('#tr-seg'); T.querySelectorAll('button').forEach(b => b.remove());
-    RUN.trajectories[st.ck].forEach((t, i) => { const b = el('button', i === st.ti ? 'on' : '', String(i + 1)); b.title = `${t.n} пикс., log R = ${fmt(t.log_r, 2)}`; b.onclick = () => { st.ti = i; segs(); go(0, true); }; T.appendChild(b); });
+    cks.forEach(c => { const b = el('button', '', String(c)); b.dataset.v = c; b.onclick = () => { st.touched = true; st.ck = String(c); st.ti = 0; buildTraj(); syncSegs(); go(0, true); }; C.appendChild(b); });
+    buildTraj();
     const S = $('#sp-seg'); S.querySelectorAll('button').forEach(b => b.remove());
-    [0.5, 1, 2].forEach(v => { const b = el('button', v === st.speed ? 'on' : '', v + '×'); b.onclick = () => { st.speed = v; segs(); if (st.playing) schedule(); }; S.appendChild(b); });
+    [0.5, 1, 2].forEach(v => { const b = el('button', '', v + '×'); b.dataset.v = v; b.onclick = () => { st.speed = v; syncSegs(); if (st.playing) schedule(); }; S.appendChild(b); });
+    syncSegs();
+  }
+  function buildTraj() {
+    const T = $('#tr-seg'); T.querySelectorAll('button').forEach(b => b.remove());
+    RUN.trajectories[st.ck].forEach((t, i) => { const b = el('button', '', String(i + 1)); b.dataset.v = i; b.title = `${t.n} пикс., log R = ${fmt(t.log_r, 2)}`; b.onclick = () => { st.touched = true; st.ti = i; syncSegs(); go(0, true); }; T.appendChild(b); });
+  }
+  function syncSegs() {
+    const mark = (sel, v) => $(sel).querySelectorAll('button').forEach(b => { const on = b.dataset.v === String(v); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    mark('#ck-seg', st.ck); mark('#tr-seg', st.ti); mark('#sp-seg', st.speed);
     $('#btn-play').textContent = st.playing ? '❚❚' : '▶';
     $('#btn-play').setAttribute('aria-label', st.playing ? 'Пауза' : 'Играть');
   }
@@ -485,9 +495,9 @@ const PL = (() => {
         if (tok !== st.token) return;
         if (s.action === 16) stopbar.classList.add('chosen');
         else { const c = polG.children[s.action]; c.classList.add('chosen'); if (animate) c.classList.add('flash'); }
-      }, animate && !REDUCED ? 220 / st.speed : 0);
+      }, animate && !REDUCED && !term ? 220 / st.speed : 0);
     };
-    setTimeout(show, delay * STAGES.length + (animate && !REDUCED ? 80 : 0));
+    if (term) show(); else setTimeout(show, delay * STAGES.length + (animate && !REDUCED ? 80 : 0));
 
     // ledger
     const tb = $('#ledger'); let h = '<tr><th>t</th><th>действие</th><th>P_F</th><th>log P_F</th><th>Σ log P_F</th></tr>';
@@ -496,7 +506,9 @@ const PL = (() => {
       h += `<tr class="${k === i ? 'cur' : ''}"><td>${k}</td><td>${rc(q.action)}</td><td>${fmt(q.probs[q.action], 3)}</td><td>${fmt(q.logp, 3)}</td><td>${fmt(q.cum_logpf, 3)}</td></tr>`;
     }
     tb.innerHTML = h;
-    const row = tb.querySelector('tr.cur'); if (row) row.scrollIntoView({ block: 'nearest' });
+    const row = tb.querySelector('tr.cur');
+    if (row) { const wrap = tb.closest('.wrap'), r = row.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+      if (r.bottom > w.bottom) wrap.scrollTop += r.bottom - w.bottom; else if (r.top < w.top) wrap.scrollTop -= w.top - r.top; }
     const B = $('#balance');
     if (term) {
       const lhs = t.log_z + t.log_pf, rhs = t.log_r + t.log_pb;
@@ -525,15 +537,19 @@ const PL = (() => {
     clearTimeout(timer); if (!st.playing) return;
     const term = st.frame >= frames() - 1;
     timer = setTimeout(() => {
-      if (term) { st.ti = (st.ti + 1) % RUN.trajectories[st.ck].length; segs(); go(0, true); }
+      if (term) { st.ti = (st.ti + 1) % RUN.trajectories[st.ck].length; syncSegs(); go(0, true); }
       else go(st.frame + 1, true);
     }, (term ? 2600 : 1500) / st.speed);
   }
   function go(i, animate) { st.frame = Math.max(0, Math.min(frames() - 1, i)); render(st.frame, animate); schedule(); }
-  $('#btn-play').onclick = () => { st.playing = !st.playing; segs(); schedule(); };
-  $('#btn-prev').onclick = () => { st.playing = false; segs(); go(st.frame - 1, false); };
-  $('#btn-next').onclick = () => { st.playing = false; segs(); go(st.frame + 1, true); };
-  segs(); go(0, false);
+  $('#btn-play').onclick = () => { st.touched = true; st.playing = !st.playing; syncSegs(); schedule(); };
+  $('#btn-prev').onclick = () => { st.touched = true; st.playing = false; syncSegs(); go(st.frame - 1, false); };
+  $('#btn-next').onclick = () => { st.touched = true; st.playing = false; syncSegs(); go(st.frame + 1, true); };
+  buildSegs(); go(0, false);
+  if (!REDUCED && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); if (!st.touched && !st.playing) { st.playing = true; syncSegs(); schedule(); } } }, { threshold: 0.3 });
+    io.observe($('.player'));
+  }
   return st;
 })();
 
@@ -544,9 +560,9 @@ const PL = (() => {
   const W = 300, Hh = 150, pad = { l: 40, r: 10, t: 10, b: 22 };
   const sx = it => pad.l + (it / RUN.meta.iters) * (W - pad.l - pad.r);
   const charts = [
-    { id: 'loss', title: 'Лосс TB (log)', xs: H.it, ys: H.loss, log: true, color: 'var(--model)' },
-    { id: 'logz', title: 'log Z: модель и истина (пунктир)', xs: H.it, ys: H.log_z, ref: RUN.true_log_z, color: 'var(--model)' },
-    { id: 'tv', title: 'TV-расстояние до R/Z по чекпоинтам', xs: C.map(c => c.it), ys: C.map(c => c.tv), dots: true, color: 'var(--model)', zero: true },
+    { id: 'loss', title: 'Лосс TB (log)', short: 'лосс', xs: H.it, ys: H.loss, log: true, color: 'var(--model)' },
+    { id: 'logz', title: 'log Z: модель и истина (пунктир)', short: 'log Z', xs: H.it, ys: H.log_z, ref: RUN.true_log_z, color: 'var(--model)' },
+    { id: 'tv', title: 'TV-расстояние до R/Z по чекпоинтам', short: 'TV', xs: C.map(c => c.it), ys: C.map(c => c.tv), dots: true, color: 'var(--model)', zero: true },
   ];
   const ticksLog = (lo, hi) => { const r = []; for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) r.push(10 ** e); return r; };
   const ticksLin = (lo, hi) => { const span = hi - lo, step = [1, 2, 5, 10].map(m => m * 10 ** Math.floor(Math.log10(span / 3))).find(s => span / s <= 6) || span; const r = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) r.push(+v.toFixed(6)); return r; };
@@ -576,7 +592,7 @@ const PL = (() => {
       const r = ch.svg.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * W;
       const it = Math.round((x - pad.l) / (W - pad.l - pad.r) * RUN.meta.iters);
       let best = 0; ch.xs.forEach((v, i) => { if (Math.abs(v - it) < Math.abs(ch.xs[best] - it)) best = i; });
-      showTip(ev, `итерация ${ch.xs[best]}<br>${ch.title.split(' ')[0]} ${fmt(ch.ys[best], 4)}`);
+      showTip(ev, `итерация ${ch.xs[best]}<br>${ch.short} ${fmt(ch.ys[best], 4)}`);
     });
     ch.svg.addEventListener('mouseleave', hideTip);
   });
@@ -586,15 +602,19 @@ const PL = (() => {
   const grps = T.ids.map((id, i) => {
     const g = el('div', 'grp'); const t = el('i', 't'), m = el('i', 'm'); g.append(t, m);
     t.style.height = (T.p_star[i] / pmax * 100) + '%'; m.style.height = '0%';
-    g.addEventListener('mousemove', ev => showTip(ev, `#${i + 1}, ${T.n[i]} пикс., ${T.hmin[i]} px от прототипа<br>цель ${fmt(T.p_star[i], 4)}<br>модель ${fmt(C[+range.value].top40_p[i], 4)}`, id));
-    g.addEventListener('mouseleave', hideTip);
+    g.tabIndex = 0; g.setAttribute('role', 'img');
+    const txt = () => `#${i + 1}, ${T.n[i]} пикс., ${T.hmin[i]} пикс. от прототипа<br>цель ${fmt(T.p_star[i], 4)}<br>модель ${fmt(C[+range.value].top40_p[i], 4)}`;
+    g.setAttribute('aria-label', `состояние ${i + 1}: цель ${fmt(T.p_star[i], 4)}`);
+    g.addEventListener('mousemove', ev => showTip(ev, txt(), id));
+    g.addEventListener('focus', () => { const b = g.getBoundingClientRect(); showTip({ clientX: b.left, clientY: b.top - 10 }, txt(), id); });
+    g.addEventListener('mouseleave', hideTip); g.addEventListener('blur', hideTip);
     barsEl.appendChild(g); return m;
   });
   const strip = $('#cv-strip'), kv = $('#cv-kv'), protoFlat = RUN.protos;
   const hmin = id => { const b = bits(id); return Math.min(...protoFlat.map(p => p.reduce((s, v, i) => s + (v !== b[i] ? 1 : 0), 0))); };
   function setK(k) {
     const c = C[k]; range.value = k;
-    $('#cv-it').textContent = `итерация ${c.it}`;
+    $('#cv-it').textContent = `итерация ${c.it}`; range.setAttribute('aria-valuetext', `итерация ${c.it}`);
     charts.forEach(ch => {
       const idx = ch.xs.indexOf(c.it) >= 0 ? ch.xs.indexOf(c.it) : ch.xs.findIndex(v => v >= c.it);
       const y = ch.sy(Math.max(ch.ys[Math.max(0, idx)], ch.log ? 1e-4 : -Infinity));
@@ -603,23 +623,24 @@ const PL = (() => {
     });
     grps.forEach((m, i) => { m.style.height = (c.top40_p[i] / pmax * 100) + '%'; });
     strip.innerHTML = ''; c.samples.forEach(id => strip.appendChild(miniGrid(id, hmin(id) <= 1 ? 'near' : '')));
-    kv.innerHTML = `<b>TV до R/Z</b><span class="mono">${fmt(c.tv, 4)}</span><b>корреляция</b><span class="mono">${fmt(c.corr, 4)}</span><b>log Z</b><span class="mono">${fmt(c.log_z, 3)} (истина ${fmt(RUN.true_log_z, 3)})</span><b>масса ≤ 1 px</b><span class="mono">${fmt(c.mass1px, 3)} (цель ${fmt(RUN.target.mass1px, 3)})</span><b>P на прототипах</b><span class="mono">${c.proto_hits.map(v => fmt(v, 3)).join(' · ')} (цель ${RUN.target.proto_hits.map(v => fmt(v, 3)).join(' · ')})</span>`;
+    kv.innerHTML = `<b>TV до R/Z</b><span class="mono">${fmt(c.tv, 4)}</span><b>корреляция</b><span class="mono">${fmt(c.corr, 4)}</span><b>log Z</b><span class="mono">${fmt(c.log_z, 3)} (истина ${fmt(RUN.true_log_z, 3)})</span><b>масса ≤ 1 пикс.</b><span class="mono">${fmt(c.mass1px, 3)} (цель ${fmt(RUN.target.mass1px, 3)})</span><b>P на прототипах</b><span class="mono">${c.proto_hits.map(v => fmt(v, 3)).join(' · ')} (цель ${RUN.target.proto_hits.map(v => fmt(v, 3)).join(' · ')})</span>`;
   }
-  let timer = null, playing = false;
+  let timer = null, playing = false, touched = false;
   const btn = $('#cv-play');
   function play() {
+    clearTimeout(timer);
     playing = true; btn.textContent = '❚❚'; btn.setAttribute('aria-label', 'Пауза');
     const step = () => { const k = +range.value; if (k >= K - 1) { stop(); return; } setK(k + 1); timer = setTimeout(step, 900); };
     if (+range.value >= K - 1) setK(0);
     timer = setTimeout(step, 700);
   }
   function stop() { playing = false; clearTimeout(timer); btn.textContent = '▶'; btn.setAttribute('aria-label', 'Проиграть обучение'); }
-  btn.onclick = () => playing ? stop() : play();
-  range.oninput = () => { stop(); setK(+range.value); };
-  setK(REDUCED ? K - 1 : 0);
+  btn.onclick = () => { touched = true; playing ? stop() : play(); };
+  range.oninput = () => { touched = true; stop(); setK(+range.value); };
+  setK(K - 1);
   if (!REDUCED && 'IntersectionObserver' in window) {
-    let fired = false;
-    new IntersectionObserver(es => { if (!fired && es.some(e => e.isIntersecting)) { fired = true; play(); } }, { threshold: 0.4 }).observe(barsEl);
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); if (!touched && !playing) { setK(0); play(); } } }, { threshold: 0.4 });
+    io.observe(barsEl);
   }
 })();
 
@@ -667,7 +688,7 @@ const PL = (() => {
     for (const [x, y, i] of pts) { const d = (x - mx) ** 2 + (y - my) ** 2; if (d < bd) { bd = d; best = i; } }
     if (best == null) { hideTip(); return; }
     const sub = RUN.final.scatter;
-    showTip(ev, `${sub.hmin[best]} px от прототипа<br>цель ${sub.p_star[best].toExponential(2)}<br>модель ${sub.p_model[best].toExponential(2)}`, null);
+    showTip(ev, `${sub.hmin[best]} пикс. от прототипа<br>цель ${sub.p_star[best].toExponential(2)}<br>модель ${sub.p_model[best].toExponential(2)}`, null);
   });
   cv.addEventListener('mouseleave', hideTip);
   // metrics table
@@ -675,10 +696,10 @@ const PL = (() => {
     ['TV-расстояние P_model и R/Z', fmt(f.tv, 4), '0'],
     ['Корреляция P_model и R/Z', fmt(f.corr, 4), '1'],
     ['log Z', fmt(f.log_z, 3), fmt(RUN.true_log_z, 3)],
-    ['Масса ≤ 1 px от прототипа (точно)', fmt(f.mass1px_exact, 3), fmt(RUN.target.mass1px, 3)],
-    ['Доля сэмплов ≤ 1 px (20 000 сэмплов)', fmt(f.frac1px, 3), fmt(RUN.target.mass1px, 3)],
+    ['Масса ≤ 1 пикс. от прототипа (точно)', fmt(f.mass1px_exact, 3), fmt(RUN.target.mass1px, 3)],
+    ['Доля сэмплов ≤ 1 пикс. (20 000 сэмплов)', fmt(f.frac1px, 3), fmt(RUN.target.mass1px, 3)],
     ['Частота прототипов в сэмплах', f.proto_hits_sample.map(v => fmt(v, 3)).join(' · '), RUN.target.proto_hits.map(v => fmt(v, 3)).join(' · ')],
-    ['Уникальных состояний в 20 000 сэмплах', f.unique_states, '–'],
+    ['Уникальных состояний в 20 000 сэмплах', f.unique_states.toLocaleString('ru-RU'), '–'],
     ['Средняя награда сэмпла', fmt(f.mean_reward, 4), '–'],
   ];
   $('#metrics').innerHTML = '<tr><th>метрика</th><th>модель</th><th>цель</th></tr>' + rows.map(r => `<tr><td>${r[0]}</td><td class="mono">${r[1]}</td><td class="mono">${r[2]}</td></tr>`).join('');

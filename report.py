@@ -115,6 +115,8 @@ def main():
     ckpt_records = []
     trajectories = {}
 
+    eval_seconds = [0.0]
+
     def on_checkpoint(it, model, log_z):
         t = time.time()
         model.eval()
@@ -133,12 +135,13 @@ def main():
             trajectories[str(it)] = [record_trajectory(model, env, log_z) for _ in range(TRAJ_CKPTS[it])]
         ckpt_records.append(rec)
         model.train()
+        eval_seconds[0] += time.time() - t
         print(f"  ckpt {it:5d}: TV {rec['tv']:.4f} corr {rec['corr']:.4f} logZ {rec['log_z']:.3f} ({time.time() - t:.1f}s)")
 
     t0 = time.time()
     log_z, history = train(env, model, iters=args.iters, batch=args.batch,
                            checkpoints=CKPTS, on_checkpoint=on_checkpoint)
-    train_seconds = time.time() - t0
+    train_seconds = time.time() - t0 - eval_seconds[0]  # optimisation only, checkpoint evaluation excluded
 
     model.eval()
     sm = sample_metrics(model, env)
@@ -186,8 +189,12 @@ def main():
     print(f"wrote {args.out}/run.json ({os.path.getsize(f'{args.out}/run.json') // 1024} KB)")
     tpl = "viz/report_template.html"
     if os.path.exists(tpl):
-        html = open(tpl).read().replace("/*__RUN_JSON__*/", json.dumps(run, separators=(",", ":")))
-        open(f"{args.out}/report.html", "w").write(html)
+        body = open(tpl, encoding="utf-8").read().replace("/*__RUN_JSON__*/", json.dumps(run, separators=(",", ":")))
+        html = ('<!doctype html><html lang="ru"><head><meta charset="utf-8">'
+                '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>\n'
+                + body + "\n</body></html>\n")
+        with open(f"{args.out}/report.html", "w", encoding="utf-8") as f:
+            f.write(html)
         print(f"wrote {args.out}/report.html")
 
 
