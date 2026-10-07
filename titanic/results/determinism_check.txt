@@ -1,0 +1,4 @@
+optuna  seed 42 run A vs B: trials identical=True, submission identical=True; best acc 0.83894 vs 0.83894
+optuna  seed 43 differs from seed 42: True (best acc 0.82943)
+flaml   seed 42 run A vs B: config identical=True, submission identical=True; best acc 0.83839 vs 0.83839
+DETERMINISTIC

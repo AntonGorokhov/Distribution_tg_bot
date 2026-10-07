@@ -49,4 +49,36 @@ python -m pytest tests/test_titanic.py
 
 ## Results
 
-Filled in from `out/titanic/results.json` of the committed run; see the section below.
+Committed run: `python -m titanic.run --trials 120 --seed 42` (144 s on one core).
+Outputs are in `titanic/results/`.
+
+| | |
+|---|---|
+| best CV accuracy (2x5-fold) | **0.8406** ± 0.0170 (trial #110) |
+| best model | lgbm: n_estimators=275, learning_rate=0.0642, num_leaves=12, min_child_samples=17, subsample=0.7822, colsample_bytree=0.6965, reg_lambda=4.1282 |
+| hypotheses picked | title=True, family=True, deck=False, ticket_group=True, fare_log=True, age_bins=False, age_impute=median |
+| submission sha256 | `2ffe1014f66e2bc8…` (predicted survival rate 0.373) |
+| FLAML comparator (60 iterations) | lgbm, CV accuracy 0.8384 |
+
+Per model family over the 120 trials:
+
+| model | trials | best CV | mean CV |
+|---|---|---|---|
+| lgbm | 75 | 0.8406 | 0.8326 |
+| logreg | 8 | 0.8316 | 0.8158 |
+| svc | 10 | 0.8316 | 0.7533 |
+| hgb | 15 | 0.8311 | 0.8222 |
+| rf | 12 | 0.8305 | 0.8251 |
+
+Determinism check (`python -m titanic.verify_determinism --trials 30 --flaml`), output in
+`titanic/results/determinism_check.txt`:
+
+```
+optuna  seed 42 run A vs B: trials identical=True, submission identical=True; best acc 0.83894 vs 0.83894
+optuna  seed 43 differs from seed 42: True (best acc 0.82943)
+flaml   seed 42 run A vs B: config identical=True, submission identical=True; best acc 0.83839 vs 0.83839
+DETERMINISTIC
+```
+
+Kaggle's public leaderboard was not queried from this environment (no Kaggle access);
+pipelines in this CV range typically score 0.77–0.80 on the public test split.

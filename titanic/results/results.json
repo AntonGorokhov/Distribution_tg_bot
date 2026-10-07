@@ -1,0 +1,74 @@
+{
+  "seed": 42,
+  "trials": 120,
+  "cv": "2x stratified 5-fold",
+  "best_trial": 110,
+  "best_cv_accuracy": 0.84061,
+  "best_cv_std": 0.01702,
+  "best_model": "lgbm",
+  "best_hypotheses": {
+    "title": true,
+    "family": true,
+    "deck": false,
+    "ticket_group": true,
+    "fare_log": true,
+    "age_bins": false,
+    "age_impute": "median"
+  },
+  "best_params": {
+    "n_estimators": 275,
+    "learning_rate": 0.06419957003763324,
+    "num_leaves": 12,
+    "min_child_samples": 17,
+    "subsample": 0.782215496860042,
+    "colsample_bytree": 0.6964902808112425,
+    "reg_lambda": 4.128214651716286
+  },
+  "best_fingerprint": "1b2e10d9b4690de2",
+  "submission_sha256": "2ffe1014f66e2bc859c39ecef4616e672fc46e6922c159458579857f99a573e8",
+  "trials_sha256": "24869b1d5b497c36d1b9cb29a3c18307aa4c8b7ee13457ca65eb2a0a383ac592",
+  "survived_rate_test": 0.3732,
+  "by_model": {
+    "hgb": {
+      "count": 15,
+      "max": 0.8311,
+      "mean": 0.8222
+    },
+    "lgbm": {
+      "count": 75,
+      "max": 0.8406,
+      "mean": 0.8326
+    },
+    "logreg": {
+      "count": 8,
+      "max": 0.8316,
+      "mean": 0.8158
+    },
+    "rf": {
+      "count": 12,
+      "max": 0.8305,
+      "mean": 0.8251
+    },
+    "svc": {
+      "count": 10,
+      "max": 0.8316,
+      "mean": 0.7533
+    }
+  },
+  "search_seconds": 143.9,
+  "data_md5": {
+    "train.csv": "61fdd54abdbf6a85b778e937122e1194",
+    "test.csv": "029c9cd22461f6dbe8d9ab01def965c6"
+  },
+  "env": {
+    "python": "3.13.16",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "sklearn": "1.9.1",
+    "optuna": "5.0.0",
+    "lightgbm": "4.7.0",
+    "PYTHONHASHSEED": "0",
+    "OMP_NUM_THREADS": "1",
+    "git_commit": "f235b4fa3da5533921022ff4438047953cdaa9cf"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "seed": 42,
+  "max_iter": 60,
+  "best_estimator": "lgbm",
+  "best_config": {
+    "n_estimators": 44,
+    "num_leaves": 4,
+    "min_child_samples": 11,
+    "learning_rate": 0.1554749600163486,
+    "log_max_bin": 7,
+    "colsample_bytree": 1.0,
+    "reg_alpha": 0.004098585837896314,
+    "reg_lambda": 0.019162423007018176
+  },
+  "best_cv_accuracy": 0.83839,
+  "submission_sha256": "43e25892487bea0bc48fef61d8ec1affff34ce7f8562c77cab4bc9f6bb1bf59d",
+  "seconds": 3.8,
+  "env": {
+    "python": "3.13.16",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "sklearn": "1.9.1",
+    "optuna": "5.0.0",
+    "lightgbm": "4.7.0",
+    "PYTHONHASHSEED": "0",
+    "OMP_NUM_THREADS": "1",
+    "git_commit": "f235b4fa3da5533921022ff4438047953cdaa9cf"
+  }
+}
