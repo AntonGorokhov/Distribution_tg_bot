@@ -17,7 +17,8 @@ import optuna
 
 from titanic.determinism import reexec_with_fixed_hashseed, seed_everything
 
-reexec_with_fixed_hashseed()
+if __name__ == "__main__":
+    reexec_with_fixed_hashseed()
 
 from .env import CanvasEnv  # noqa: E402
 from .ops import COLUMNS, OPS, VALID  # noqa: E402

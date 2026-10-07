@@ -20,7 +20,7 @@ OP_DOC = {
     "log": "log1p of a numeric column",
     "qbin": "quantile bin index (4 bins, edges fitted on train)",
     "missing": "indicator that the value is missing",
-    "count": "frequency encoding (count of equal values in train)",
+    "count": "frequency encoding: equal values among fit rows plus the row itself (same for fit and new rows)",
     "onehot": "one-hot with a fixed category list",
     "extract": "Name -> title, Cabin -> deck letter, Ticket -> prefix present",
     "family": "SibSp/Parch -> FamilySize and IsAlone",
@@ -66,6 +66,7 @@ class FeatureBuilder:
 
     def fit(self, df: pd.DataFrame):
         self.stats_ = {}
+        self.fit_ids_ = frozenset(df["PassengerId"].tolist())  # count-encoding: new rows add themselves
         for c, o in self.cells:
             if o == "qbin":
                 q = df[c].dropna().quantile([0.25, 0.5, 0.75]).values
@@ -92,7 +93,8 @@ class FeatureBuilder:
             elif o == "missing":
                 out[f"{c}_na"] = df[c].isna().astype(int)
             elif o == "count":
-                out[f"{c}_cnt"] = df[c].map(self.stats_[(c, o)]).fillna(1).astype(int)
+                new = ~df["PassengerId"].isin(self.fit_ids_)
+                out[f"{c}_cnt"] = df[c].map(self.stats_[(c, o)]).fillna(0).astype(int) + new.astype(int)
             elif o == "onehot":
                 cats = PORTS if c == "Embarked" else [1, 2, 3]
                 for k in cats:

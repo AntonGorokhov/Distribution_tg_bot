@@ -19,7 +19,8 @@ import torch.nn.functional as F
 
 from titanic.determinism import reexec_with_fixed_hashseed, seed_everything, sha256_file
 
-reexec_with_fixed_hashseed()
+if __name__ == "__main__":  # re-exec only as the program, never when imported (compare.py imports this)
+    reexec_with_fixed_hashseed()
 
 from gfn.unet import UNetPolicy  # noqa: E402
 from titanic import data  # noqa: E402
