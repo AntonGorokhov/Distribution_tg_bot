@@ -120,6 +120,30 @@ def mean_field(R, budget, rng, samples: list) -> list:
     return batch_evaluate(R, lambda: ([c for c in CELLS if rng.random() < marg[f"{c[0]}:{c[1]}"]], dict(hps[rng.integers(n)])), budget)
 
 
+def untrained_policy(R, n: int, seed: int) -> tuple[list, dict]:
+    """Samples from the untrained U-Net policy (uniform over valid actions, STOP included), the
+    distribution the GFlowNet starts from; evaluated like the trained generator's samples."""
+    import torch
+    from gfn.unet import UNetPolicy
+    from .env import CanvasEnv
+    from .train import rollout
+    torch.manual_seed(seed); torch.set_num_threads(1)
+    env, model, gen = CanvasEnv(), UNetPolicy(base=32), torch.Generator().manual_seed(seed)
+    with torch.no_grad():
+        canvas = torch.cat([rollout(model, env, 32, 0.0, gen)[0] for _ in range(int(np.ceil(n / 32)))])[:n]
+    hyps = [env.decode(c) for c in canvas]
+    accs = R.accuracies(hyps)
+    seen, evaluated = set(), []
+    for (cells, hp), a in zip(hyps, accs):
+        k = RewardEvaluator.key(cells, {**DEFAULTS, **hp})
+        if k not in seen:
+            seen.add(k); evaluated.append((k, a))
+    marg = {f"{a}:{b}": round(sum((a, b) in h[0] for h in hyps) / n, 3) for a, b in CELLS}
+    extra = {"cell_marginals": marg, "cells_per_canvas": [round(float(np.mean([len(h[0]) for h in hyps])), 2), round(float(np.std([len(h[0]) for h in hyps])), 2)],
+             "hp_marginals": {name: dict(Counter(str(h[1].get(name, "unset")) for h in hyps)) for name, _ in HPARAMS}, "mean_acc_all_samples": round(float(np.mean(accs)), 4)}
+    return evaluated, extra
+
+
 def tpe_search(R, budget, seed, max_trials):
     evaluated, seen = [], set()
     sampler = optuna.samplers.TPESampler(seed=seed, multivariate=True, n_startup_trials=30)
@@ -220,6 +244,11 @@ def main():
         t = time.time(); ev = mean_field(R, len(samples), rng, samples)
         out["meanfield"] = summarize("mean-field (independent cells at the generator's marginals)", ev, time.time() - t, X, y, f"{len(samples)} draws")
         print(f"meanfld: best {out['meanfield']['best_acc']:.4f} | >=0.83: {out['meanfield']['n_above_083']} | mean {out['meanfield']['mean_acc']}", flush=True)
+    if "untrained" in methods:
+        n = len(load_json(args.gfn_out, "samples.json"))
+        ev, extra = untrained_policy(R, n, res["seed"])
+        out["untrained"] = {**summarize("untrained policy (uniform over valid actions)", ev, None, X, y, f"{n} samples"), **extra}
+        print(f"untrain: mean {extra['mean_acc_all_samples']} | >=0.83: {out['untrained']['n_above_083']} | cells {extra['cells_per_canvas']}", flush=True)
     if "tpe" in methods:
         t = time.time(); ev = tpe_search(R, args.tpe_budget, args.seed, max_trials=args.tpe_budget * 3)
         out["tpe"] = summarize("Optuna TPE", ev, time.time() - t, X, y, f"{args.tpe_budget} evaluations")
