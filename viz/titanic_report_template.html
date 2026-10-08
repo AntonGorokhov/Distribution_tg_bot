@@ -1,0 +1,431 @@
+<title>Anal yst Titanic</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; dot plots for scores that differ by a few thousandths, bars only for rates from zero. */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --fg:#161a21; --muted:#5d6675; --line:#e1e5ea; --line-strong:#c4cad3;
+  --ink:#1c2740; --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --heat:#2a78d6; --band:#eb6834;
+  --font-sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141619; --surface:#1c1f24; --fg:#e9ecf0; --muted:#9aa3ae; --line:#2b3038; --line-strong:#3d4450;
+    --ink:#e6e9ee; --s1:#3987e5; --s2:#d95926; --s3:#199e70; --heat:#3987e5; --band:#d95926; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141619; --surface:#1c1f24; --fg:#e9ecf0; --muted:#9aa3ae; --line:#2b3038; --line-strong:#3d4450;
+  --ink:#e6e9ee; --s1:#3987e5; --s2:#d95926; --s3:#199e70; --heat:#3987e5; --band:#d95926; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-sans);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:28px 72px}
+.page{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:48px}
+h1,h2,h3{margin:0;line-height:1.2;text-wrap:balance;font-weight:600}
+h1{font-size:clamp(26px,4vw,38px)} h2{font-size:clamp(19px,2.6vw,24px)} h3{font-size:14px;font-weight:500;color:var(--muted)}
+p{margin:0;max-width:72ch}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .hint{font-size:12px;color:var(--muted);max-width:none}
+section{display:flex;flex-direction:column;gap:16px}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+code{font-family:var(--font-mono);font-size:.92em}
+pre{margin:0;font-family:var(--font-mono);font-size:12px;line-height:1.5;padding:10px 12px;border-left:2px solid var(--line-strong);overflow-x:auto;max-width:100%}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}
+.tile{display:flex;flex-direction:column;gap:2px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:6px;min-width:0}
+.tile .l{font-size:12px;color:var(--muted)} .tile .v{font-family:var(--font-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2;overflow-wrap:anywhere}
+.tile .s{font-size:12px;color:var(--muted);font-family:var(--font-mono)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#proto-table th,#proto-table td{white-space:normal;text-align:left;vertical-align:top}
+th{font-weight:500;color:var(--muted)} td:first-child,th:first-child{text-align:left;white-space:normal}
+.tw{overflow-x:auto;max-width:100%}
+tr.hi td{background:color-mix(in oklab,var(--s1) 10%,transparent)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:1fr}}
+.chart{display:flex;flex-direction:column;gap:4px;min-width:0}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.ax{stroke:var(--line);stroke-width:1} .tk{font-family:var(--font-mono);font-size:10px;fill:var(--muted)}
+.lbl{font-family:var(--font-sans);font-size:11px;fill:var(--fg)}
+.ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--sw)}
+.legend span.sq::before{border-radius:2px}
+.charts4{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.grid{display:grid;gap:2px;background:var(--line);border:2px solid var(--line);border-radius:4px;max-width:100%}
+.cell{aspect-ratio:1;background:var(--surface);position:relative;min-width:0}
+.cell.invalid{background:repeating-linear-gradient(45deg,var(--surface) 0 3px,var(--line) 3px 4px)}
+.cell.on{background:var(--ink)}
+.cell.sel{outline:2px solid var(--s3);outline-offset:-2px}
+.canvasw{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:stretch;max-width:420px}
+.rowlabels{display:grid;grid-template-rows:repeat(var(--rows),1fr);gap:2px;font-family:var(--font-mono);font-size:11px;color:var(--muted);text-align:right;padding:2px 0}
+.rowlabels span{display:flex;align-items:center;justify-content:flex-end;min-height:0}
+.collabels{grid-column:2;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;font-family:var(--font-mono);font-size:10px;color:var(--muted);text-align:center;padding:0 2px}
+.collabels span{overflow:hidden;text-overflow:ellipsis}
+.pipes{display:flex;flex-wrap:wrap;gap:8px}
+.pipe{display:flex;flex-direction:column;gap:4px;align-items:center;cursor:pointer;padding:6px;border-radius:6px;border:1px solid transparent;background:none;color:var(--fg);font:inherit}
+.pipe .grid{width:72px} .pipe.on{border-color:var(--s3)} .pipe:focus-visible{outline:2px solid var(--s1)}
+.pipe .mono{font-size:11px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:13px;align-items:baseline} .kv b{font-weight:500}
+ul{margin:0;padding-left:18px;max-width:80ch} li{margin:3px 0}
+.tip{position:fixed;z-index:10;pointer-events:none;background:var(--surface);color:var(--fg);border:1px solid var(--line-strong);border-radius:6px;padding:8px 10px;font-size:12px;font-family:var(--font-mono);box-shadow:0 4px 14px rgba(0,0,0,.12);max-width:300px;white-space:pre-line}
+.tip[hidden]{display:none}
+.band{fill:var(--band);opacity:.1}
+.dot{stroke:var(--surface);stroke-width:2}
+.cur{transition:transform .3s ease} .cur line{stroke:var(--fg);stroke-width:1}
+@media (prefers-reduced-motion: reduce){.cur{transition:none}}
+</style>
+
+<div class="page">
+<header class="sec-head" style="gap:12px">
+  <div class="eyebrow">Anal yst · Titanic</div>
+  <h1>Титаник: три способа перебирать гипотезы</h1>
+  <p>Один оценщик, одни фолды, скор = локальная кросс-валидация. Ручные гипотезы + Optuna, GFlowNet-генератор пайплайнов, контроли (random, TPE, mean-field, необученная политика). Все числа из закоммиченных прогонов.</p>
+  <div class="tiles" id="tiles"></div>
+</header>
+
+<section id="proto">
+  <div class="sec-head"><div class="eyebrow">1 · Протокол</div><h2>Что перебирается и как считается скор</h2></div>
+  <div class="tw"><table id="proto-table"></table></div>
+  <p class="hint"><b>search CV</b>: один сидированный 5-fold, который оптимизировал поиск (Optuna-ветка: 2×5-fold). <b>re-scored</b>: тот же пайплайн на трёх свежих 5-fold (сиды 1–3), среднее. Шум CV на 891 строке ≈ 0,015.</p>
+</section>
+
+<section id="cmp">
+  <div class="sec-head"><div class="eyebrow">2 · Сравнение</div><h2>Скоры при равном бюджете</h2></div>
+  <div class="two">
+    <div class="chart">
+      <h3>Точность: лучший по поиску → на свежих фолдах</h3>
+      <div class="legend"><span style="--sw:var(--s2)">лучший search CV</span><span style="--sw:var(--s1)">лучший re-scored из top-10</span><span style="--sw:var(--s3)">top-10 re-scored, среднее</span><span class="sq" style="--sw:color-mix(in oklab,var(--band) 30%,var(--surface))">±0,015 вокруг лучшего человека</span></div>
+      <svg id="dots" role="img" aria-label="Точность методов, три оценки на метод"></svg>
+    </div>
+    <div class="chart">
+      <h3>Доля оценённых гипотез с search CV ≥ 0,83</h3>
+      <svg id="rates" role="img" aria-label="Доля гипотез выше 0.83 по методам"></svg>
+      <div class="hint">Плотность хороших гипотез в том, что метод оценил. У TPE высокая за счёт повторов одной области.</div>
+    </div>
+  </div>
+  <div class="tw"><table id="cmp-table"></table></div>
+</section>
+
+<section id="anytime">
+  <div class="sec-head"><div class="eyebrow">3 · Бюджет</div><h2>Лучший search CV против числа уникальных оценок</h2></div>
+  <div class="two">
+    <div class="chart">
+      <h3>Лучший search CV на момент N-й уникальной оценки, ось оценок логарифмическая, ниже 0,80 обрезано</h3>
+      <div class="legend"><span style="--sw:var(--s1)">GFlowNet</span><span style="--sw:var(--s2)">random</span><span style="--sw:var(--s3)">TPE</span></div>
+      <svg id="anytime-svg" role="img" aria-label="Лучший результат по ходу поиска"></svg>
+    </div>
+    <div class="kv" id="anytime-kv"></div>
+  </div>
+</section>
+
+<section id="gen">
+  <div class="sec-head"><div class="eyebrow">4 · Генератор</div><h2>Что выучил GFlowNet</h2></div>
+  <div class="two">
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <h3>Маргиналы обученного генератора на холсте (512 сэмплов)</h3>
+      <div class="canvasw" id="marg-canvas"></div>
+      <div class="hint">Строки: колонки и гиперпараметры, столбцы: операции. Штриховка: ячейка недопустима. Наведите: описание и маргинал до/после обучения.</div>
+    </div>
+    <div class="chart">
+      <h3>Маргинал ячейки: необученная политика → обученная</h3>
+      <div class="legend"><span style="--sw:var(--line-strong)">до обучения</span><span style="--sw:var(--s1)">после</span></div>
+      <svg id="dumbbell" role="img" aria-label="Маргиналы ячеек до и после обучения"></svg>
+    </div>
+  </div>
+  <div class="two">
+    <div class="kv" id="gen-kv"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+      <h3>Top-5 сгенерированных пайплайнов (клик: состав)</h3>
+      <div class="pipes" id="pipes"></div>
+      <div class="hint mono" id="pipe-detail"></div>
+    </div>
+  </div>
+</section>
+
+<section id="train">
+  <div class="sec-head"><div class="eyebrow">5 · Обучение</div><h2>Trajectory balance, 300 итераций × 32</h2></div>
+  <div class="charts4" id="train-charts"></div>
+</section>
+
+<section id="optuna">
+  <div class="sec-head"><div class="eyebrow">6 · Optuna-ветка</div><h2>Ручные гипотезы, 5 моделей, 120 трейлов</h2></div>
+  <div class="two">
+    <div class="tw"><table id="opt-table"></table></div>
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div class="kv" id="opt-kv"></div>
+      <pre id="det"></pre>
+    </div>
+  </div>
+</section>
+
+<section id="verdict">
+  <div class="sec-head"><div class="eyebrow">7 · Вывод</div><h2>Коротко</h2></div>
+  <ul id="verdict-list"></ul>
+</section>
+
+<section id="repro">
+  <div class="sec-head"><div class="eyebrow">8 · Воспроизвести</div></div>
+  <pre>git checkout claude/titanic-gflownet
+python -m titanic.run --trials 120 --seed 42              # ручные гипотезы + Optuna, ~2.5 мин
+python -m titanic.verify_determinism --trials 30 --flaml  # A == B, другой сид != A
+python -m titanic_gfn.train --iters 300 --batch 32 --workers 3   # GFlowNet, ~22 мин
+python -m titanic_gfn.compare                             # random, mean-field, TPE, untrained, референс
+python -m titanic_gfn.report                              # эта страница</pre>
+</section>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const RUN = /*__RUN_JSON__*/;
+const $ = (s, r = document) => r.querySelector(s);
+const el = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h != null) e.innerHTML = h; return e; };
+const f4 = x => x == null ? '–' : Number(x).toFixed(4);
+const pct = x => x == null ? '–' : (100 * x).toFixed(1) + ' %';
+const C = RUN.compare, G = RUN.gfn, O = RUN.optuna, CV = RUN.canvas;
+const tip = $('#tip');
+function showTip(ev, text) {
+  tip.textContent = text; tip.hidden = false;
+  const r = tip.getBoundingClientRect(); let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 14; if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 14;
+  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+}
+const hideTip = () => { tip.hidden = true; };
+
+/* ---------- rows ---------- */
+const ROWS = [
+  ['gflownet', 'GFlowNet, фаза обучения'], ['gflownet@3000', 'GFlowNet, первые 3 000'],
+  ['random', 'random search, тот же приор и бюджет'], ['random@3000', 'random search, первые 3 000'],
+  ['tpe', 'Optuna TPE, 3 000'], ['gflownet-samples', 'генератор GFlowNet, 512 сэмплов'],
+  ['meanfield', 'mean-field по маргиналам генератора, 512'], ['untrained', 'необученная политика, 512'],
+  ['reference', 'ручные гипотезы + LightGBM (Optuna-ветка)'],
+].filter(([k]) => C[k]);
+const MAIN = ['gflownet', 'random', 'tpe', 'gflownet-samples', 'meanfield', 'untrained', 'reference'].filter(k => C[k]);
+const SHORT = { gflownet: 'GFlowNet', random: 'random', tpe: 'TPE', 'gflownet-samples': 'генератор', meanfield: 'mean-field', untrained: 'необученная', reference: 'человек + LightGBM' };
+
+/* ---------- tiles ---------- */
+(function () {
+  const T = $('#tiles'), mk = (l, v, s) => { const t = el('div', 'tile'); t.append(el('div', 'l', l), el('div', 'v', v), el('div', 's', s)); T.appendChild(t); };
+  const best = MAIN.map(k => [k, C[k].rescored_best]).sort((a, b) => b[1] - a[1]);
+  mk('Плато честного скора', `${f4(Math.min(...MAIN.map(k => C[k].rescored_best)))}–${f4(best[0][1])}`, 'лучший re-scored, все методы');
+  mk('Лучший top-10 re-scored', f4(Math.max(...MAIN.map(k => C[k].rescored_top10_mean))), SHORT[MAIN.map(k => [k, C[k].rescored_top10_mean]).sort((a, b) => b[1] - a[1])[0][0]]);
+  mk('Оценок GFlowNet', G.train_evaluations.toLocaleString('ru-RU'), `${Math.round(G.train_seconds / 60)} мин, 4 ядра`);
+  mk('Оценок Optuna-ветки', String(O.trials), `${Math.round(O.search_seconds)} с, 1 ядро`);
+  mk('Разнообразие top-10', `${C.gflownet.top10_diversity.toFixed(2)} / ${C.tpe.top10_diversity.toFixed(2)}`, 'GFlowNet / TPE, Jaccard');
+  mk('Детерминизм', RUN.determinism.trim().endsWith('DETERMINISTIC') ? 'да' : 'нет', 'A = B байт-в-байт, 2 процесса');
+})();
+
+/* ---------- protocol ---------- */
+$('#proto-table').innerHTML = `<tr><th>ветка / метод</th><th>пространство</th><th>модель в награде</th><th>оценок</th><th>время</th></tr>
+<tr><td>titanic (Optuna TPE + FLAML)</td><td>7 ручных переключателей признаков × 5 моделей × их гиперпараметры</td><td>LightGBM, HGB, RF, logreg, SVC, 2×5-fold</td><td class="mono">120</td><td class="mono">${Math.round(O.search_seconds)} с</td></tr>
+<tr><td>titanic_gfn (GFlowNet)</td><td>холст колонка × операция: 30 допустимых ячеек + 4 строки гиперпараметров (11 ячеек)</td><td>HGB или logreg, 5-fold, R = exp(${G.beta}·(acc − ${G.base}))</td><td class="mono">${G.train_evaluations.toLocaleString('ru-RU')}</td><td class="mono">${Math.round(G.train_seconds / 60)} мин</td></tr>
+<tr><td>контроли</td><td>то же пространство: random с приором необученной политики, TPE, mean-field по маргиналам генератора, необученная политика</td><td>тот же оценщик</td><td class="mono">${C.random.unique_evaluations.toLocaleString('ru-RU')} / ${C.tpe.unique_evaluations.toLocaleString('ru-RU')} / 512 / 512</td><td class="mono">${Math.round((C.random.seconds + C.tpe.seconds) / 60)} мин</td></tr>`;
+
+/* ---------- comparison table ---------- */
+(function () {
+  let h = '<tr><th>метод</th><th>оценок</th><th>лучший search CV</th><th>search-best re-scored</th><th>лучший re-scored</th><th>top-10 re-scored</th><th>≥ 0,83</th><th>≥ 0,84</th><th>разнообразие</th></tr>';
+  for (const [k, name] of ROWS) {
+    const s = C[k];
+    h += `<tr class="${k === 'gflownet' ? 'hi' : ''}"><td>${name}${k === 'reference' ? '¹' : ''}</td><td class="mono">${s.unique_evaluations.toLocaleString('ru-RU')}</td><td class="mono">${f4(s.best_acc)}</td><td class="mono">${f4(s.rescored_of_search_best)}</td><td class="mono">${f4(s.rescored_best)}</td><td class="mono">${f4(s.rescored_top10_mean)}</td><td class="mono">${s.n_above_083 != null ? s.n_above_083.toLocaleString('ru-RU') + ' (' + pct(s.frac_above_083) + ')' : '–'}</td><td class="mono">${s.n_above_084 ?? '–'}</td><td class="mono">${s.top10_diversity != null ? s.top10_diversity.toFixed(3) : '–'}</td></tr>`;
+  }
+  $('#cmp-table').innerHTML = h + '<tr><td colspan="9" class="hint" style="text-align:left;white-space:normal">¹ search CV по другому протоколу (2×5-fold, сид 42), другое пространство и модели; сравнимы только re-scored колонки.</td></tr>';
+})();
+
+/* ---------- dot plot ---------- */
+(function () {
+  const W = 520, rowH = 30, padL = 150, padR = 16, padT = 22, padB = 24, Hh = padT + MAIN.length * rowH + padB;
+  const vals = MAIN.flatMap(k => [C[k].best_acc, C[k].rescored_best, C[k].rescored_top10_mean]);
+  const lo = Math.floor((Math.min(...vals) - 0.004) * 200) / 200, hi = Math.ceil((Math.max(...vals) + 0.004) * 200) / 200;
+  const X = v => padL + (v - lo) / (hi - lo) * (W - padL - padR);
+  const ref = C.reference ? C.reference.rescored_best : null;
+  let s = `<svg viewBox="0 0 ${W} ${Hh}">`;
+  if (ref != null) s += `<rect class="band" x="${X(ref - 0.015).toFixed(1)}" y="${padT - 6}" width="${(X(ref + 0.015) - X(ref - 0.015)).toFixed(1)}" height="${MAIN.length * rowH}"/>`;
+  for (let v = lo; v <= hi + 1e-9; v += 0.005) { const x = X(v).toFixed(1); s += `<line class="ax" x1="${x}" x2="${x}" y1="${padT - 6}" y2="${Hh - padB + 4}"/><text class="tk" x="${x}" y="${Hh - padB + 16}" text-anchor="middle">${v.toFixed(3)}</text>`; }
+  MAIN.forEach((k, i) => {
+    const y = padT + i * rowH + rowH / 2, c = C[k];
+    const pts = [[c.best_acc, 'var(--s2)', 'лучший search CV'], [c.rescored_best, 'var(--s1)', 'лучший re-scored'], [c.rescored_top10_mean, 'var(--s3)', 'top-10 re-scored']];
+    const xs = pts.map(p => X(p[0]));
+    s += `<text class="lbl" x="${padL - 8}" y="${y + 4}" text-anchor="end">${SHORT[k]}</text><line x1="${Math.min(...xs).toFixed(1)}" x2="${Math.max(...xs).toFixed(1)}" y1="${y}" y2="${y}" stroke="var(--line-strong)" stroke-width="2"/>`;
+    pts.forEach((p, j) => { s += `<circle class="dot" data-k="${k}" data-j="${j}" cx="${xs[j].toFixed(1)}" cy="${y}" r="5" fill="${p[1]}"/>`; });
+  });
+  s += '</svg>';
+  const svg = $('#dots'); svg.outerHTML = s.replace('<svg', '<svg id="dots" role="img" aria-label="Точность методов, три оценки на метод"');
+  $('#dots').querySelectorAll('.dot').forEach(d => {
+    const c = C[d.dataset.k], j = +d.dataset.j, v = [c.best_acc, c.rescored_best, c.rescored_top10_mean][j], n = ['лучший search CV', 'лучший re-scored из top-10', 'top-10 re-scored, среднее'][j];
+    d.addEventListener('mousemove', ev => showTip(ev, `${SHORT[d.dataset.k]}\n${n}: ${f4(v)}`)); d.addEventListener('mouseleave', hideTip);
+  });
+})();
+
+/* ---------- rates bar ---------- */
+(function () {
+  const keys = MAIN.filter(k => C[k].frac_above_083 != null);
+  const W = 520, rowH = 30, padL = 150, padR = 56, padT = 10, padB = 24, Hh = padT + keys.length * rowH + padB;
+  const max = Math.max(...keys.map(k => C[k].frac_above_083));
+  const X = v => padL + v / max * (W - padL - padR);
+  let s = `<svg viewBox="0 0 ${W} ${Hh}">`;
+  [0, 0.1, 0.2, 0.3, 0.4, 0.5].filter(v => v <= max).forEach(v => { const x = X(v).toFixed(1); s += `<line class="ax" x1="${x}" x2="${x}" y1="${padT}" y2="${Hh - padB + 4}"/><text class="tk" x="${x}" y="${Hh - padB + 16}" text-anchor="middle">${Math.round(v * 100)}%</text>`; });
+  keys.forEach((k, i) => {
+    const y = padT + i * rowH + 5, c = C[k];
+    s += `<text class="lbl" x="${padL - 8}" y="${y + 14}" text-anchor="end">${SHORT[k]}</text><rect x="${padL}" y="${y}" width="${(X(c.frac_above_083) - padL).toFixed(1)}" height="20" rx="0" fill="var(--s1)"/><text class="tk" x="${(X(c.frac_above_083) + 6).toFixed(1)}" y="${y + 14}">${c.n_above_083.toLocaleString('ru-RU')} / ${c.unique_evaluations.toLocaleString('ru-RU')}</text>`;
+  });
+  $('#rates').outerHTML = (s + '</svg>').replace('<svg', '<svg id="rates" role="img" aria-label="Доля гипотез выше 0.83 по методам"');
+})();
+
+/* ---------- anytime ---------- */
+(function () {
+  const series = [['gflownet', 'var(--s1)'], ['random', 'var(--s2)'], ['tpe', 'var(--s3)']].filter(([k]) => C[k]);
+  const W = 520, Hh = 240, pad = { l: 46, r: 12, t: 10, b: 28 };
+  const maxN = Math.max(...series.map(([k]) => C[k].unique_evaluations));
+  const pts = series.map(([k, col]) => { const s = C[k], b = s.best_so_far, step = Math.max(1, Math.floor(s.unique_evaluations / 400)); return { k, col, xy: b.map((v, i) => [Math.min(s.unique_evaluations, (i * step) || 1), v]) }; });
+  const ys = pts.flatMap(p => p.xy.map(q => q[1]));
+  const lo = Math.max(0.80, Math.floor((Math.min(...ys) - 0.002) * 100) / 100), hi = Math.ceil((Math.max(...ys) + 0.002) * 100) / 100;
+  const X = n => pad.l + Math.log10(Math.max(1, n)) / Math.log10(maxN) * (W - pad.l - pad.r), Y = v => pad.t + (1 - (v - lo) / (hi - lo)) * (Hh - pad.t - pad.b);
+  let s = `<svg viewBox="0 0 ${W} ${Hh}">`;
+  for (let v = lo; v <= hi + 1e-9; v += 0.01) { const y = Y(v).toFixed(1); s += `<line class="ax" x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}"/><text class="tk" x="${pad.l - 5}" y="${(+y + 3).toFixed(1)}" text-anchor="end">${v.toFixed(2)}</text>`; }
+  [10, 100, 1000, 10000].filter(n => n <= maxN * 1.05).forEach(n => { const x = X(n).toFixed(1); s += `<line class="ax" x1="${x}" x2="${x}" y1="${pad.t}" y2="${Hh - pad.b}"/><text class="tk" x="${x}" y="${Hh - 8}" text-anchor="middle">${n.toLocaleString('ru-RU')}</text>`; });
+  pts.forEach(p => { const xy = p.xy.map(q => [q[0], Math.max(q[1], lo)]); s += `<path class="ln" stroke="${p.col}" d="M${xy.map(q => `${X(q[0]).toFixed(1)},${Y(q[1]).toFixed(1)}`).join(' L')}"/>`; const last = p.xy[p.xy.length - 1]; s += `<circle class="dot" cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="4" fill="${p.col}"/>`; });
+  s += `<g class="cur"><line x1="0" x2="0" y1="${pad.t}" y2="${Hh - pad.b}"/></g></svg>`;
+  $('#anytime-svg').outerHTML = s.replace('<svg', '<svg id="anytime-svg" role="img" aria-label="Лучший результат по ходу поиска"');
+  const svg = $('#anytime-svg'), cur = svg.querySelector('.cur');
+  svg.addEventListener('mousemove', ev => {
+    const r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * W;
+    const n = Math.round(10 ** ((x - pad.l) / (W - pad.l - pad.r) * Math.log10(maxN)));
+    cur.style.transform = `translate(${X(n).toFixed(1)}px,0)`;
+    showTip(ev, `оценок: ${Math.max(1, n).toLocaleString('ru-RU')}\n` + pts.map(p => { const q = p.xy.filter(q => q[0] <= n); return `${SHORT[p.k]}: ${q.length ? f4(q[q.length - 1][1]) : '–'}`; }).join('\n'));
+  });
+  svg.addEventListener('mouseleave', hideTip);
+  const ms = [500, 1000, 3000];
+  $('#anytime-kv').innerHTML = ms.map(n => `<b>при ${n.toLocaleString('ru-RU')} оценках</b><span class="mono">${pts.map(p => { const q = p.xy.filter(q => q[0] <= n); return `${SHORT[p.k]} ${q.length ? f4(q[q.length - 1][1]) : '–'}`; }).join(' · ')}</span>`).join('') +
+    `<b>до 0,83 и выше</b><span class="mono">GFlowNet ${pct(C.gflownet.frac_above_083)} оценок · random ${pct(C.random.frac_above_083)} · TPE ${pct(C.tpe.frac_above_083)}</span>`;
+})();
+
+/* ---------- generator: canvas of marginals ---------- */
+const trained = C['gflownet-samples'].cell_marginals, untrained = C.untrained ? C.untrained.cell_marginals : {};
+const hpT = C['gflownet-samples'].hp_marginals, hpU = C.untrained ? C.untrained.hp_marginals : {};
+(function () {
+  const rows = CV.columns.length + CV.hparams.length, wrap = $('#marg-canvas');
+  wrap.style.setProperty('--rows', rows);
+  const labels = el('div', 'rowlabels'); CV.columns.forEach(c => labels.appendChild(el('span', '', c))); CV.hparams.forEach(([n]) => labels.appendChild(el('span', '', n)));
+  const grid = el('div', 'grid'); grid.style.gridTemplateColumns = 'repeat(8,1fr)';
+  for (let r = 0; r < rows; r++) for (let k = 0; k < 8; k++) {
+    const cell = el('div', 'cell'); let txt = '';
+    if (r < CV.columns.length) {
+      const key = `${CV.columns[r]}:${CV.ops[k]}`;
+      if (!CV.valid[r][k]) { cell.classList.add('invalid'); txt = `${key}: операция неприменима`; }
+      else { const v = trained[key] ?? 0; cell.style.background = `color-mix(in oklab, var(--heat) ${Math.round(v * 100)}%, var(--surface))`; txt = `${key}\n${CV.op_doc[CV.ops[k]]}\nмаргинал: ${(untrained[key] ?? NaN).toFixed(2)} → ${v.toFixed(2)}`; }
+    } else {
+      const [n, ch] = CV.hparams[r - CV.columns.length];
+      if (k < ch.length) { const t = (hpT[n] || {})[ch[k]] || 0, u = (hpU[n] || {})[ch[k]] || 0, N = C['gflownet-samples'].unique_evaluations; cell.style.background = `color-mix(in oklab, var(--heat) ${Math.round(t / N * 100)}%, var(--surface))`; txt = `${n} = ${ch[k]}\nдоля сэмплов: ${(u / (C.untrained ? C.untrained.unique_evaluations : N)).toFixed(2)} → ${(t / N).toFixed(2)}\n(не закрашено = по умолчанию ${CV.defaults[n]})`; }
+      else { cell.classList.add('invalid'); txt = `${n}: нет такого значения`; }
+    }
+    cell.addEventListener('mousemove', ev => showTip(ev, txt)); cell.addEventListener('mouseleave', hideTip);
+    grid.appendChild(cell);
+  }
+  wrap.append(labels, grid);
+  const cl = el('div', 'collabels'); CV.ops.forEach(o => cl.appendChild(el('span', '', o))); wrap.appendChild(cl);
+})();
+
+/* ---------- dumbbell ---------- */
+(function () {
+  const keys = Object.keys(trained).sort((a, b) => trained[b] - trained[a]);
+  const W = 520, rowH = 16, padL = 120, padR = 40, padT = 8, padB = 22, Hh = padT + keys.length * rowH + padB;
+  const X = v => padL + v * (W - padL - padR);
+  let s = `<svg viewBox="0 0 ${W} ${Hh}">`;
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { const x = X(v).toFixed(1); s += `<line class="ax" x1="${x}" x2="${x}" y1="${padT}" y2="${Hh - padB + 4}"/><text class="tk" x="${x}" y="${Hh - padB + 16}" text-anchor="middle">${v}</text>`; });
+  keys.forEach((k, i) => {
+    const y = padT + i * rowH + rowH / 2, u = untrained[k] ?? 0, t = trained[k];
+    s += `<text class="tk" x="${padL - 6}" y="${y + 3}" text-anchor="end">${k}</text><line x1="${X(u).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="${y}" y2="${y}" stroke="var(--line-strong)" stroke-width="2"/><circle cx="${X(u).toFixed(1)}" cy="${y}" r="3.5" fill="var(--line-strong)"/><circle class="dot" cx="${X(t).toFixed(1)}" cy="${y}" r="4.5" fill="var(--s1)"><title>${k}: ${u.toFixed(2)} → ${t.toFixed(2)}</title></circle>`;
+  });
+  $('#dumbbell').outerHTML = (s + '</svg>').replace('<svg', '<svg id="dumbbell" role="img" aria-label="Маргиналы ячеек до и после обучения"');
+})();
+
+/* ---------- generator facts + pipelines ---------- */
+(function () {
+  const gs = C['gflownet-samples'], mf = C.meanfield, u = C.untrained;
+  const other = Object.keys(trained).filter(k => k !== 'Sex:raw' && k !== 'Name:extract');
+  const rng = o => `${Math.min(...other.map(k => o[k] ?? 0)).toFixed(2)}–${Math.max(...other.map(k => o[k] ?? 0)).toFixed(2)}`;
+  const N = gs.unique_evaluations, hpm = hpT.model || {};
+  $('#gen-kv').innerHTML = `<b>средний search CV сэмплов</b><span class="mono">${u ? u.mean_acc_all_samples.toFixed(3) : '–'} → ${G.sample_mean_acc.toFixed(3)}</span>
+<b>доля сэмплов ≥ 0,83</b><span class="mono">${u ? pct(u.frac_above_083) : '–'} → ${pct(gs.frac_above_083)}</span>
+<b>ячеек на холст</b><span class="mono">${u ? u.cells_per_canvas.join(' ± ') : '–'} → ${gs.cells_per_canvas.join(' ± ')}</span>
+<b>Sex:raw / Name:extract</b><span class="mono">${(untrained['Sex:raw'] ?? NaN).toFixed(2)} / ${(untrained['Name:extract'] ?? NaN).toFixed(2)} → ${trained['Sex:raw'].toFixed(2)} / ${trained['Name:extract'].toFixed(2)}</span>
+<b>остальные 28 ячеек</b><span class="mono">${rng(untrained)} → ${rng(trained)}</span>
+<b>строка «модель»</b><span class="mono">hgb ${hpm.hgb || 0} · не задано ${hpm.unset || 0} · logreg ${hpm.logreg || 0} из ${N}</span>
+<b>mean-field по этим маргиналам</b><span class="mono">${pct(mf.frac_above_083)} ≥ 0,83, re-scored ${f4(mf.rescored_best)} / ${f4(mf.rescored_top10_mean)} против ${pct(gs.frac_above_083)}, ${f4(gs.rescored_best)} / ${f4(gs.rescored_top10_mean)} у генератора</span>`;
+  const P = $('#pipes'), det = $('#pipe-detail');
+  const top = RUN.samples_top.slice(0, 5), rescored = (gs.top10 || []);
+  const show = (i) => {
+    P.querySelectorAll('.pipe').forEach((b, j) => b.classList.toggle('on', j === i));
+    const s = top[i], r = rescored.find(t => t.acc === s.acc && t.cells.length === s.cells.length);
+    det.textContent = `search CV ${f4(s.acc)}${r ? `, re-scored ${f4(r.rescored)}` : ''} | ${JSON.stringify(s.hp)} | ${s.cells.length} ячеек: ${s.cells.join(', ')}`;
+  };
+  top.forEach((s, i) => {
+    const b = el('button', 'pipe'); b.type = 'button'; b.setAttribute('aria-label', `пайплайн ${i + 1}, ${f4(s.acc)}`);
+    const g = el('div', 'grid'); g.style.gridTemplateColumns = 'repeat(8,1fr)';
+    const on = new Set(s.cells);
+    for (let r = 0; r < CV.columns.length + CV.hparams.length; r++) for (let k = 0; k < 8; k++) {
+      const c = el('div', 'cell');
+      if (r < CV.columns.length) { if (!CV.valid[r][k]) c.classList.add('invalid'); else if (on.has(`${CV.columns[r]}:${CV.ops[k]}`)) c.classList.add('on'); }
+      else { const [n, ch] = CV.hparams[r - CV.columns.length]; if (k >= ch.length) c.classList.add('invalid'); else if (String(s.hp[n]) === ch[k]) c.classList.add('on'); }
+      g.appendChild(c);
+    }
+    b.append(g, el('span', 'mono', f4(s.acc))); b.onclick = () => show(i); P.appendChild(b);
+  });
+  show(0);
+})();
+
+/* ---------- training charts ---------- */
+(function () {
+  const H = RUN.history, W = 300, Hh = 150, pad = { l: 42, r: 8, t: 10, b: 22 };
+  const sx = it => pad.l + it / G.iters * (W - pad.l - pad.r);
+  const charts = [
+    { t: 'лосс TB (log)', ys: H.map(h => h.loss), log: true },
+    { t: 'log Z', ys: H.map(h => h.log_z) },
+    { t: 'search CV в батче: среднее и максимум', ys: H.map(h => h.acc_mean), ys2: H.map(h => h.acc_max) },
+    { t: 'закрашено ячеек, среднее по батчу', ys: H.map(h => h.n_mean) },
+  ];
+  const ticks = (lo, hi) => { const span = hi - lo, step = [1, 2, 5, 10].map(m => m * 10 ** Math.floor(Math.log10(span / 3))).find(s => span / s <= 6) || span; const r = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) r.push(+v.toFixed(6)); return r; };
+  const box = $('#train-charts');
+  charts.forEach(ch => {
+    const all = ch.ys.concat(ch.ys2 || []); let lo = Math.min(...all), hi = Math.max(...all);
+    if (ch.log) lo = Math.max(lo, 0.1); else { const m = (hi - lo) * 0.08; lo -= m; hi += m; }
+    const sy = v => ch.log ? pad.t + (1 - (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo))) * (Hh - pad.t - pad.b) : pad.t + (1 - (v - lo) / (hi - lo)) * (Hh - pad.t - pad.b);
+    let s = `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${ch.t}">`;
+    (ch.log ? [0.1, 1, 10, 100] : ticks(lo, hi)).filter(v => v >= lo && v <= hi).forEach(v => { const y = sy(v).toFixed(1); s += `<line class="ax" x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}"/><text class="tk" x="${pad.l - 4}" y="${(+y + 3).toFixed(1)}" text-anchor="end">${v}</text>`; });
+    [0, 100, 200, 300].forEach(v => { s += `<text class="tk" x="${sx(v).toFixed(1)}" y="${Hh - 6}" text-anchor="middle">${v}</text>`; });
+    const path = ys => 'M' + ys.map((v, i) => `${sx(H[i].it).toFixed(1)},${sy(Math.max(v, ch.log ? lo : -Infinity)).toFixed(1)}`).join(' L');
+    s += `<path class="ln" stroke="var(--s1)" d="${path(ch.ys)}"/>`;
+    if (ch.ys2) s += `<path class="ln" stroke="var(--s2)" d="${path(ch.ys2)}"/>`;
+    const d = el('div', 'chart'); d.innerHTML = `<h3>${ch.t}</h3>${s}</svg>`; box.appendChild(d);
+    const svg = d.querySelector('svg');
+    svg.addEventListener('mousemove', ev => { const r = svg.getBoundingClientRect(), it = Math.max(1, Math.min(G.iters, Math.round((ev.clientX - r.left) / r.width * W - pad.l) / (W - pad.l - pad.r) * G.iters)); const h = H[it - 1]; showTip(ev, `итерация ${h.it}\nлосс ${h.loss}\nlog Z ${h.log_z}\nacc ${h.acc_mean} / max ${h.acc_max}\nячеек ${h.n_mean}\nоценок ${h.evals.toLocaleString('ru-RU')}`); });
+    svg.addEventListener('mouseleave', hideTip);
+  });
+})();
+
+/* ---------- optuna branch ---------- */
+(function () {
+  const bm = O.by_model, rows = Object.entries(bm).sort((a, b) => b[1].max - a[1].max);
+  $('#opt-table').innerHTML = '<tr><th>модель</th><th>трейлов</th><th>лучший CV</th><th>средний CV</th></tr>' + rows.map(([m, v]) => `<tr><td>${m}</td><td class="mono">${v.count}</td><td class="mono">${f4(v.max)}</td><td class="mono">${f4(v.mean)}</td></tr>`).join('');
+  const hyp = Object.entries(O.best_hypotheses).map(([k, v]) => `${k}=${v}`).join(', ');
+  $('#opt-kv').innerHTML = `<b>лучший трейл</b><span class="mono">#${O.best_trial}, ${O.best_model}, CV ${f4(O.best_cv_accuracy)}, std по фолдам ${f4(O.best_cv_std)}</span>
+<b>гипотезы</b><span class="mono">${hyp}</span>
+<b>шум отбора</b><span class="mono">${O.n_trials_within_1std} из ${O.trials} трейлов в пределах одного std, ${O.n_trials_within_1se} в пределах 1 SE (${f4(O.best_cv_se_naive)})</span>
+<b>на свежих фолдах</b><span class="mono">search-best ${f4(C.reference.rescored_of_search_best)}, лучший из top-10 ${f4(C.reference.rescored_best)}, top-10 ${f4(C.reference.rescored_top10_mean)}</span>
+<b>FLAML, ${RUN.flaml.max_iter} итераций</b><span class="mono">${RUN.flaml.best_estimator}: ${f4(RUN.flaml.best_cv_accuracy)} по своей CV, ${f4(RUN.flaml.best_cv_accuracy_per_fold_protocol)} по честному протоколу</span>`;
+  $('#det').textContent = RUN.determinism;
+})();
+
+/* ---------- verdict ---------- */
+(function () {
+  const g = C.gflownet, r = C.random, t = C.tpe, ref = C.reference, gs = C['gflownet-samples'], mf = C.meanfield;
+  $('#verdict-list').innerHTML = [
+    `Честный скор всех методов в плато ${f4(Math.min(...MAIN.map(k => C[k].rescored_best)))}–${f4(Math.max(...MAIN.map(k => C[k].rescored_best)))}, разница меньше шума CV 0,015.`,
+    `GFlowNet против random при равном бюджете: плотнее гипотезы ≥ 0,83 (${pct(g.frac_above_083)} против ${pct(r.frac_above_083)}), но максимум и re-scored не выше (${f4(g.rescored_best)} против ${f4(r.rescored_best)}).`,
+    `Генератор выучил Sex, title и длину пайплайна; mean-field по его маргиналам даёт то же (${pct(mf.frac_above_083)} против ${pct(gs.frac_above_083)} ≥ 0,83). Структуры сверх маргиналов нет. Гиперпараметры остались на приоре: при β = ${G.beta} награда отличает hgb от logreg в ~1,5 раза.`,
+    `TPE: максимум search CV ${f4(t.best_acc)} за 3 000 оценок, на свежих фолдах ${f4(t.rescored_best)}; разнообразие ${t.top10_diversity.toFixed(2)}, одна область.`,
+    `Человек + LightGBM: лучший top-10 re-scored ${f4(ref.rescored_top10_mean)} за 120 оценок против ${G.train_evaluations.toLocaleString('ru-RU')} у GFlowNet.`,
+    `Где GFlowNet может окупиться: политика с условием на мета-признаки датасета и обучение на многих таблицах, либо награда со структурой, которую маргиналы не несут (парные операции, стекинг). Здесь не проверено.`,
+  ].map(x => `<li>${x}</li>`).join('');
+})();
+</script>
