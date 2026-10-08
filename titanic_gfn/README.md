@@ -58,7 +58,7 @@ number of distinct hypotheses above 0.83 / 0.84 and the mean of the top 20.
 ## Run
 
 ```bash
-python -m titanic_gfn.train --iters 300 --batch 32 --workers 3     # ~15 min on 4 cores
+python -m titanic_gfn.train --iters 300 --batch 32 --workers 3     # ~22 min on 4 cores
 python -m titanic_gfn.compare                                       # random + TPE at the same budget
 ```
 
@@ -106,8 +106,9 @@ What the generator learned, untrained → trained (512 samples each): mean searc
 0.765 → 0.809; share ≥ 0.83 6.0 % → 8.4 %; cells per canvas 13.92 ± 8.8 → 14.89 ± 2.72;
 cell marginals `Sex:raw` 0.43 → 0.73, `Name:extract` 0.45 → 0.65, the other 28 cells 0.42–0.52 → 0.44–0.53.
 Hyper-parameter rows stayed at the prior (model row: hgb 184, unset 173, logreg 155 of 512).
-Independent cells drawn at the generator's own marginals (mean-field) match or beat the
-generator itself on every column of the table.
+Independent cells drawn at the generator's own marginals (mean-field) are within CV noise
+of the generator on every column of the table (higher on the ≥ 0.83 rate and best re-scored,
+lower on search-best and top-10 re-scored).
 
 An earlier run of the same configuration before a bug fix in the count-encoding op (git
 history of `titanic_gfn/results/`) learned `Name:extract` 0.94, `Sex:raw` 0.74, 18.2 ± 3.0

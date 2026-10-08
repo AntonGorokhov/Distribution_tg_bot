@@ -31,6 +31,7 @@ section{display:flex;flex-direction:column;gap:16px}
 .sec-head{display:flex;flex-direction:column;gap:6px}
 code{font-family:var(--font-mono);font-size:.92em}
 pre{margin:0;font-family:var(--font-mono);font-size:12px;line-height:1.5;padding:10px 12px;border-left:2px solid var(--line-strong);overflow-x:auto;max-width:100%}
+#det{white-space:pre-wrap;overflow-wrap:anywhere}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}
 .tile{display:flex;flex-direction:column;gap:2px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:6px;min-width:0}
 .tile .l{font-size:12px;color:var(--muted)} .tile .v{font-family:var(--font-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2;overflow-wrap:anywhere}
@@ -62,6 +63,7 @@ tr.hi td{background:color-mix(in oklab,var(--s1) 10%,transparent)}
 .rowlabels span{display:flex;align-items:center;justify-content:flex-end;min-height:0}
 .collabels{grid-column:2;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;font-family:var(--font-mono);font-size:10px;color:var(--muted);text-align:center;padding:0 2px}
 .collabels span{overflow:hidden;text-overflow:ellipsis}
+@media (max-width:600px){.collabels span{writing-mode:vertical-rl;transform:rotate(180deg);overflow:visible;text-overflow:clip;justify-self:center;line-height:1}}
 .pipes{display:flex;flex-wrap:wrap;gap:8px}
 .pipe{display:flex;flex-direction:column;gap:4px;align-items:center;cursor:pointer;padding:6px;border-radius:6px;border:1px solid transparent;background:none;color:var(--fg);font:inherit}
 .pipe .grid{width:72px} .pipe.on{border-color:var(--s3)} .pipe:focus-visible{outline:2px solid var(--s1)}
@@ -212,14 +214,14 @@ const SHORT = { gflownet: 'GFlowNet', random: 'random', tpe: 'TPE', 'gflownet-sa
   mk('Оценок GFlowNet', G.train_evaluations.toLocaleString('ru-RU'), `${Math.round(G.train_seconds / 60)} мин, 4 ядра`);
   mk('Оценок Optuna-ветки', String(O.trials), `${Math.round(O.search_seconds)} с, 1 ядро`);
   mk('Разнообразие top-10', `${C.gflownet.top10_diversity.toFixed(2)} / ${C.tpe.top10_diversity.toFixed(2)}`, 'GFlowNet / TPE, Jaccard');
-  mk('Детерминизм', RUN.determinism.trim().endsWith('DETERMINISTIC') ? 'да' : 'нет', 'A = B байт-в-байт, 2 процесса');
+  mk('Детерминизм', RUN.determinism.trim().split('\n').pop().trim() === 'DETERMINISTIC' ? 'да' : 'нет', 'A = B байт-в-байт, 2 процесса');
 })();
 
 /* ---------- protocol ---------- */
 $('#proto-table').innerHTML = `<tr><th>ветка / метод</th><th>пространство</th><th>модель в награде</th><th>оценок</th><th>время</th></tr>
 <tr><td>titanic (Optuna TPE + FLAML)</td><td>7 ручных переключателей признаков × 5 моделей × их гиперпараметры</td><td>LightGBM, HGB, RF, logreg, SVC, 2×5-fold</td><td class="mono">120</td><td class="mono">${Math.round(O.search_seconds)} с</td></tr>
 <tr><td>titanic_gfn (GFlowNet)</td><td>холст колонка × операция: 30 допустимых ячеек + 4 строки гиперпараметров (11 ячеек)</td><td>HGB или logreg, 5-fold, R = exp(${G.beta}·(acc − ${G.base}))</td><td class="mono">${G.train_evaluations.toLocaleString('ru-RU')}</td><td class="mono">${Math.round(G.train_seconds / 60)} мин</td></tr>
-<tr><td>контроли</td><td>то же пространство: random с приором необученной политики, TPE, mean-field по маргиналам генератора, необученная политика</td><td>тот же оценщик</td><td class="mono">${C.random.unique_evaluations.toLocaleString('ru-RU')} / ${C.tpe.unique_evaluations.toLocaleString('ru-RU')} / 512 / 512</td><td class="mono">${Math.round((C.random.seconds + C.tpe.seconds) / 60)} мин</td></tr>`;
+<tr><td>контроли</td><td>то же пространство: random с приором необученной политики, TPE, mean-field по маргиналам генератора, необученная политика</td><td>тот же оценщик</td><td class="mono">${[C.random, C.tpe, C.meanfield, C.untrained].map(x => x ? x.unique_evaluations.toLocaleString('ru-RU') : '–').join(' / ')}</td><td class="mono">${Math.round([C.random, C.tpe, C.meanfield, C.untrained].reduce((a, x) => a + (x && x.seconds || 0), 0) / 60)} мин</td></tr>`;
 
 /* ---------- comparison table ---------- */
 (function () {
@@ -228,38 +230,39 @@ $('#proto-table').innerHTML = `<tr><th>ветка / метод</th><th>прос�
     const s = C[k];
     h += `<tr class="${k === 'gflownet' ? 'hi' : ''}"><td>${name}${k === 'reference' ? '¹' : ''}</td><td class="mono">${s.unique_evaluations.toLocaleString('ru-RU')}</td><td class="mono">${f4(s.best_acc)}</td><td class="mono">${f4(s.rescored_of_search_best)}</td><td class="mono">${f4(s.rescored_best)}</td><td class="mono">${f4(s.rescored_top10_mean)}</td><td class="mono">${s.n_above_083 != null ? s.n_above_083.toLocaleString('ru-RU') + ' (' + pct(s.frac_above_083) + ')' : '–'}</td><td class="mono">${s.n_above_084 ?? '–'}</td><td class="mono">${s.top10_diversity != null ? s.top10_diversity.toFixed(3) : '–'}</td></tr>`;
   }
-  $('#cmp-table').innerHTML = h + '<tr><td colspan="9" class="hint" style="text-align:left;white-space:normal">¹ search CV по другому протоколу (2×5-fold, сид 42), другое пространство и модели; сравнимы только re-scored колонки.</td></tr>';
+  $('#cmp-table').innerHTML = h;
+  $('#cmp-table').closest('.tw').insertAdjacentHTML('afterend', '<p class="hint">¹ search CV по другому протоколу (2×5-fold, сид 42), другое пространство и модели; сравнимы только re-scored колонки.</p>');
 })();
 
 /* ---------- dot plot ---------- */
 (function () {
-  const W = 520, rowH = 30, padL = 150, padR = 16, padT = 22, padB = 24, Hh = padT + MAIN.length * rowH + padB;
+  const W = Math.max(380, $('#dots').parentElement.clientWidth || 520), st = W < 460 ? 0.01 : 0.005, rowH = 30, padL = 150, padR = 16, padT = 22, padB = 24, Hh = padT + MAIN.length * rowH + padB;
   const vals = MAIN.flatMap(k => [C[k].best_acc, C[k].rescored_best, C[k].rescored_top10_mean]);
-  const lo = Math.floor((Math.min(...vals) - 0.004) * 200) / 200, hi = Math.ceil((Math.max(...vals) + 0.004) * 200) / 200;
+  const lo = Math.floor((Math.min(...vals) - 0.004) / st) * st, hi = Math.ceil((Math.max(...vals) + 0.004) / st) * st;
   const X = v => padL + (v - lo) / (hi - lo) * (W - padL - padR);
   const ref = C.reference ? C.reference.rescored_best : null;
   let s = `<svg viewBox="0 0 ${W} ${Hh}">`;
   if (ref != null) s += `<rect class="band" x="${X(ref - 0.015).toFixed(1)}" y="${padT - 6}" width="${(X(ref + 0.015) - X(ref - 0.015)).toFixed(1)}" height="${MAIN.length * rowH}"/>`;
-  for (let v = lo; v <= hi + 1e-9; v += 0.005) { const x = X(v).toFixed(1); s += `<line class="ax" x1="${x}" x2="${x}" y1="${padT - 6}" y2="${Hh - padB + 4}"/><text class="tk" x="${x}" y="${Hh - padB + 16}" text-anchor="middle">${v.toFixed(3)}</text>`; }
+  for (let v = lo; v <= hi + 1e-9; v += st) { const x = X(v).toFixed(1); s += `<line class="ax" x1="${x}" x2="${x}" y1="${padT - 6}" y2="${Hh - padB + 4}"/><text class="tk" x="${x}" y="${Hh - padB + 16}" text-anchor="middle">${v.toFixed(3)}</text>`; }
   MAIN.forEach((k, i) => {
     const y = padT + i * rowH + rowH / 2, c = C[k];
     const pts = [[c.best_acc, 'var(--s2)', 'лучший search CV'], [c.rescored_best, 'var(--s1)', 'лучший re-scored'], [c.rescored_top10_mean, 'var(--s3)', 'top-10 re-scored']];
-    const xs = pts.map(p => X(p[0]));
-    s += `<text class="lbl" x="${padL - 8}" y="${y + 4}" text-anchor="end">${SHORT[k]}</text><line x1="${Math.min(...xs).toFixed(1)}" x2="${Math.max(...xs).toFixed(1)}" y1="${y}" y2="${y}" stroke="var(--line-strong)" stroke-width="2"/>`;
-    pts.forEach((p, j) => { s += `<circle class="dot" data-k="${k}" data-j="${j}" cx="${xs[j].toFixed(1)}" cy="${y}" r="5" fill="${p[1]}"/>`; });
+    const xs = pts.map(p => X(p[0])), isRef = k === 'reference';
+    s += `<text class="lbl" x="${padL - 8}" y="${y + 4}" text-anchor="end">${SHORT[k]}${isRef ? '¹' : ''}</text><line x1="${Math.min(...xs).toFixed(1)}" x2="${Math.max(...xs).toFixed(1)}" y1="${y}" y2="${y}" stroke="var(--line-strong)" stroke-width="2"/>`;
+    pts.forEach((p, j) => { const hollow = isRef && j === 0; s += `<circle class="dot" data-k="${k}" data-j="${j}" cx="${xs[j].toFixed(1)}" cy="${y}" r="5" fill="${hollow ? 'var(--surface)' : p[1]}" ${hollow ? `stroke="${p[1]}" stroke-width="2"` : ''}/>`; });
   });
   s += '</svg>';
   const svg = $('#dots'); svg.outerHTML = s.replace('<svg', '<svg id="dots" role="img" aria-label="Точность методов, три оценки на метод"');
   $('#dots').querySelectorAll('.dot').forEach(d => {
     const c = C[d.dataset.k], j = +d.dataset.j, v = [c.best_acc, c.rescored_best, c.rescored_top10_mean][j], n = ['лучший search CV', 'лучший re-scored из top-10', 'top-10 re-scored, среднее'][j];
-    d.addEventListener('mousemove', ev => showTip(ev, `${SHORT[d.dataset.k]}\n${n}: ${f4(v)}`)); d.addEventListener('mouseleave', hideTip);
+    d.addEventListener('mousemove', ev => showTip(ev, `${SHORT[d.dataset.k]}\n${n}: ${f4(v)}${d.dataset.k === 'reference' && j === 0 ? '\n¹ другой протокол CV, не сравнимо' : ''}`)); d.addEventListener('mouseleave', hideTip);
   });
 })();
 
 /* ---------- rates bar ---------- */
 (function () {
   const keys = MAIN.filter(k => C[k].frac_above_083 != null);
-  const W = 520, rowH = 30, padL = 150, padR = 56, padT = 10, padB = 24, Hh = padT + keys.length * rowH + padB;
+  const W = Math.max(380, $('#rates').parentElement.clientWidth || 520), rowH = 30, padL = 150, padR = 96, padT = 10, padB = 24, Hh = padT + keys.length * rowH + padB;
   const max = Math.max(...keys.map(k => C[k].frac_above_083));
   const X = v => padL + v / max * (W - padL - padR);
   let s = `<svg viewBox="0 0 ${W} ${Hh}">`;
@@ -274,7 +277,7 @@ $('#proto-table').innerHTML = `<tr><th>ветка / метод</th><th>прос�
 /* ---------- anytime ---------- */
 (function () {
   const series = [['gflownet', 'var(--s1)'], ['random', 'var(--s2)'], ['tpe', 'var(--s3)']].filter(([k]) => C[k]);
-  const W = 520, Hh = 240, pad = { l: 46, r: 12, t: 10, b: 28 };
+  const W = Math.max(380, $('#anytime-svg').parentElement.clientWidth || 520), Hh = 240, pad = { l: 46, r: 24, t: 10, b: 28 };
   const maxN = Math.max(...series.map(([k]) => C[k].unique_evaluations));
   const pts = series.map(([k, col]) => { const s = C[k], b = s.best_so_far, step = Math.max(1, Math.floor(s.unique_evaluations / 400)); return { k, col, xy: b.map((v, i) => [Math.min(s.unique_evaluations, (i * step) || 1), v]) }; });
   const ys = pts.flatMap(p => p.xy.map(q => q[1]));
@@ -289,7 +292,7 @@ $('#proto-table').innerHTML = `<tr><th>ветка / метод</th><th>прос�
   const svg = $('#anytime-svg'), cur = svg.querySelector('.cur');
   svg.addEventListener('mousemove', ev => {
     const r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * W;
-    const n = Math.round(10 ** ((x - pad.l) / (W - pad.l - pad.r) * Math.log10(maxN)));
+    const n = Math.min(maxN, Math.max(1, Math.round(10 ** ((x - pad.l) / (W - pad.l - pad.r) * Math.log10(maxN)))));
     cur.style.transform = `translate(${X(n).toFixed(1)}px,0)`;
     showTip(ev, `оценок: ${Math.max(1, n).toLocaleString('ru-RU')}\n` + pts.map(p => { const q = p.xy.filter(q => q[0] <= n); return `${SHORT[p.k]}: ${q.length ? f4(q[q.length - 1][1]) : '–'}`; }).join('\n'));
   });
@@ -315,7 +318,7 @@ const hpT = C['gflownet-samples'].hp_marginals, hpU = C.untrained ? C.untrained.
       else { const v = trained[key] ?? 0; cell.style.background = `color-mix(in oklab, var(--heat) ${Math.round(v * 100)}%, var(--surface))`; txt = `${key}\n${CV.op_doc[CV.ops[k]]}\nмаргинал: ${(untrained[key] ?? NaN).toFixed(2)} → ${v.toFixed(2)}`; }
     } else {
       const [n, ch] = CV.hparams[r - CV.columns.length];
-      if (k < ch.length) { const t = (hpT[n] || {})[ch[k]] || 0, u = (hpU[n] || {})[ch[k]] || 0, N = C['gflownet-samples'].unique_evaluations; cell.style.background = `color-mix(in oklab, var(--heat) ${Math.round(t / N * 100)}%, var(--surface))`; txt = `${n} = ${ch[k]}\nдоля сэмплов: ${(u / (C.untrained ? C.untrained.unique_evaluations : N)).toFixed(2)} → ${(t / N).toFixed(2)}\n(не закрашено = по умолчанию ${CV.defaults[n]})`; }
+      if (k < ch.length) { const t = (hpT[n] || {})[ch[k]] || 0, u = (hpU[n] || {})[ch[k]] || 0, N = C['gflownet-samples'].unique_evaluations; cell.style.background = `color-mix(in oklab, var(--heat) ${Math.round(t / N * 100)}%, var(--surface))`; txt = `${n} = ${ch[k]}\nдоля сэмплов: ${(u / (Object.values(hpU[n] || {}).reduce((a, b) => a + b, 0) || N)).toFixed(2)} → ${(t / N).toFixed(2)}\n(не закрашено = по умолчанию ${CV.defaults[n]})`; }
       else { cell.classList.add('invalid'); txt = `${n}: нет такого значения`; }
     }
     cell.addEventListener('mousemove', ev => showTip(ev, txt)); cell.addEventListener('mouseleave', hideTip);
@@ -328,7 +331,7 @@ const hpT = C['gflownet-samples'].hp_marginals, hpU = C.untrained ? C.untrained.
 /* ---------- dumbbell ---------- */
 (function () {
   const keys = Object.keys(trained).sort((a, b) => trained[b] - trained[a]);
-  const W = 520, rowH = 16, padL = 120, padR = 40, padT = 8, padB = 22, Hh = padT + keys.length * rowH + padB;
+  const W = Math.max(380, $('#dumbbell').parentElement.clientWidth || 520), rowH = 16, padL = 120, padR = 40, padT = 8, padB = 22, Hh = padT + keys.length * rowH + padB;
   const X = v => padL + v * (W - padL - padR);
   let s = `<svg viewBox="0 0 ${W} ${Hh}">`;
   [0, 0.25, 0.5, 0.75, 1].forEach(v => { const x = X(v).toFixed(1); s += `<line class="ax" x1="${x}" x2="${x}" y1="${padT}" y2="${Hh - padB + 4}"/><text class="tk" x="${x}" y="${Hh - padB + 16}" text-anchor="middle">${v}</text>`; });
@@ -356,7 +359,8 @@ const hpT = C['gflownet-samples'].hp_marginals, hpU = C.untrained ? C.untrained.
   const top = RUN.samples_top.slice(0, 5), rescored = (gs.top10 || []);
   const show = (i) => {
     P.querySelectorAll('.pipe').forEach((b, j) => b.classList.toggle('on', j === i));
-    const s = top[i], r = rescored.find(t => t.acc === s.acc && t.cells.length === s.cells.length);
+    const key = o => [...o.cells].sort().join('|') + '#' + JSON.stringify(Object.entries(o.hp || {}).sort());
+    const s = top[i], r = rescored.find(t => key(t) === key(s));
     det.textContent = `search CV ${f4(s.acc)}${r ? `, re-scored ${f4(r.rescored)}` : ''} | ${JSON.stringify(s.hp)} | ${s.cells.length} ячеек: ${s.cells.join(', ')}`;
   };
   top.forEach((s, i) => {
@@ -384,10 +388,11 @@ const hpT = C['gflownet-samples'].hp_marginals, hpU = C.untrained ? C.untrained.
     { t: 'search CV в батче: среднее и максимум', ys: H.map(h => h.acc_mean), ys2: H.map(h => h.acc_max) },
     { t: 'закрашено ячеек, среднее по батчу', ys: H.map(h => h.n_mean) },
   ];
-  const ticks = (lo, hi) => { const span = hi - lo, step = [1, 2, 5, 10].map(m => m * 10 ** Math.floor(Math.log10(span / 3))).find(s => span / s <= 6) || span; const r = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) r.push(+v.toFixed(6)); return r; };
+  const ticks = (lo, hi) => { const span = hi - lo; if (span <= 0) return [lo]; const step = [1, 2, 5, 10].map(m => m * 10 ** Math.floor(Math.log10(span / 3))).find(s => span / s <= 6) || span; const r = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) r.push(+v.toFixed(6)); return r; };
   const box = $('#train-charts');
   charts.forEach(ch => {
     const all = ch.ys.concat(ch.ys2 || []); let lo = Math.min(...all), hi = Math.max(...all);
+    if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
     if (ch.log) lo = Math.max(lo, 0.1); else { const m = (hi - lo) * 0.08; lo -= m; hi += m; }
     const sy = v => ch.log ? pad.t + (1 - (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo))) * (Hh - pad.t - pad.b) : pad.t + (1 - (v - lo) / (hi - lo)) * (Hh - pad.t - pad.b);
     let s = `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${ch.t}">`;
@@ -398,7 +403,7 @@ const hpT = C['gflownet-samples'].hp_marginals, hpU = C.untrained ? C.untrained.
     if (ch.ys2) s += `<path class="ln" stroke="var(--s2)" d="${path(ch.ys2)}"/>`;
     const d = el('div', 'chart'); d.innerHTML = `<h3>${ch.t}</h3>${s}</svg>`; box.appendChild(d);
     const svg = d.querySelector('svg');
-    svg.addEventListener('mousemove', ev => { const r = svg.getBoundingClientRect(), it = Math.max(1, Math.min(G.iters, Math.round((ev.clientX - r.left) / r.width * W - pad.l) / (W - pad.l - pad.r) * G.iters)); const h = H[it - 1]; showTip(ev, `итерация ${h.it}\nлосс ${h.loss}\nlog Z ${h.log_z}\nacc ${h.acc_mean} / max ${h.acc_max}\nячеек ${h.n_mean}\nоценок ${h.evals.toLocaleString('ru-RU')}`); });
+    svg.addEventListener('mousemove', ev => { const r = svg.getBoundingClientRect(), it = Math.max(1, Math.min(G.iters, Math.round(((ev.clientX - r.left) / r.width * W - pad.l) / (W - pad.l - pad.r) * G.iters))); const h = H[it - 1]; if (!h) return hideTip(); showTip(ev, `итерация ${h.it}\nлосс ${h.loss}\nlog Z ${h.log_z}\nacc ${h.acc_mean} / max ${h.acc_max}\nячеек ${h.n_mean}\nоценок ${h.evals.toLocaleString('ru-RU')}`); });
     svg.addEventListener('mouseleave', hideTip);
   });
 })();
